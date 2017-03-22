@@ -143,7 +143,7 @@ class BloomFilter(object):
 
 	
     def stat(self):
-	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/17179869184)*100) + "%"
+	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
 
 	
 #    def load(self,filename):
