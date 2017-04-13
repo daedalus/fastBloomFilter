@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-#based on https://gist.github.com/josephkern/2897618
 """A simple Bloom Filter implementation
 Calculating optimal filter size: 
             Where:
@@ -15,6 +14,7 @@ import sha3
 import hashlib
 import mmap
 import math
+import time
 
 def blake2b512(s):
 	h = hashlib.new('blake2b512')
@@ -29,7 +29,7 @@ def sha3(s):
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
-    def __init__(self, array_size=((1024**3) *22 ), hashes=17):
+    def __init__(self, array_size=((1024**3) *1 ), hashes=17):
         """Initializes a BloomFilter() object:
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
@@ -40,8 +40,6 @@ class BloomFilter(object):
         self.bitcount = array_size * 8          # Bits in the filter
         self.hashes = hashes                    # The number of hashes to use
 	self.bitset = 0
-	#self.load()
-
 	
     def calc(error_rate,capacity):
 	hashes = int(math.ceil(math.log(1.0 / error_rate, 2)))
@@ -58,13 +56,7 @@ class BloomFilter(object):
 
         # Build an int() around the sha256 digest of int() -> value
         #value = value.__str__() # Comment out line if you're filtering strings()
-        #digest = int(sha256(value).hexdigest(), 16) 
-        #digest = int(sha256(value).hexdigest(), 16) + int(sha512(value).hexdigest(), 16)
-        #digest = int(sha512(value).hexdigest(), 16)
 	digest = int(blake2b512(value).hexdigest(),16)
-	#digest = int(sha3(value).hexdigest(),16)
-
-	#digest = int(value.encode('hex'),16)
 
         for _ in range(self.hashes):
             # bitwise AND of the digest and all of the available bit positions 
@@ -75,6 +67,7 @@ class BloomFilter(object):
             # Rounding the result by using int().
             # So: digest >>= (256 / 13) would shift 19 bits to the right.
             digest >>= (256 / self.hashes)
+	del digest
 
     def add(self, value):
         """Bitwise OR to add value(s) into the self.filter
@@ -119,53 +112,8 @@ class BloomFilter(object):
 		self._add(_hash)
 	return r
 
-    def load(self,filename):
-	#SIZE = self.bitcount / 8
-	#fp = open(filename,'r')
-        #self.filter = bytearray(fp.read(SIZE))
-        #fp.close()
-	#print "BLOOM Id:",sha256(self.filter).hexdigest()
-	
-	#with open(filename, "r+b") as f:
-    	# memory-map the file, size 0 means whole file
-    	#	self.mm = mmap.mmap(f.fileno(), 0, flags=mmap.MAP_SHARED)
-	#	self.filter.extend(self.mm)
-	print "dummy load..."
-
-    def save(self,filename):
-        #fp = open(filename,'w')
-        #fp.write(self.filter)
-        #fp.close()
-	#print "BLOOM Id:",sha256(self.filter).hexdigest()
-	#self.mm.flush()
-	#self.mm.close()
-	print "dummy save..."
-
-	
     def stat(self):
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
-
-	
-#    def load(self,filename):
-#	RSIZE=1*1024*1024
-#	pos = 0
-#	fp = open(filename,'r')
-#	data = fp.read(RSIZE)	
-#	while data != "":
-#		for i in range(0,RSIZE-1):
-#			self.filter[pos+i] = data[i]
-#		data = fp.read(RSIZE)
-#		pos += RSIZE
-#	fp.close()
-
-#    def save(self,filename):
-#        WSIZE=1*1024*1024
-#        fp = open(filename,'w')
-#        for i in range(0,int(len(self.filter)/WSIZE)):
-#                data = self.filter[i*WSIZE:(i+1)*WSIZE]
-#                fp.write(data)
-#        fp.close()
-
 
 if __name__ == "__main__":
     bf = BloomFilter()
