@@ -127,6 +127,7 @@ class BloomFilter(object):
         """
 	_hash = self._hash(value)
 	self._add(_hash)
+	del _hash
 
     def _add(self,_hash):
 	#global filter
@@ -163,6 +164,7 @@ class BloomFilter(object):
 	r = self._query(_hash)
 	if not r:
 		self._add(_hash)
+	del _hash
 	return r
 
     def load(self):
@@ -192,6 +194,7 @@ class BloomFilter(object):
 	t1 = time.time()
 	print "Loaded: %d bytes, Inflated: %d bytes" % (ld,len(self.bfilter))
 	print "In: %d sec" % (t1-t0) 
+	del ld
 	del t1 
 	del t0
 
@@ -203,12 +206,13 @@ class BloomFilter(object):
         	fp = open(self.filename,'wb')
 	        fp.write(bz2.compress(zlib.compress(str(self.bfilter).encode('zlib'),9),9))
         	fp.close()
-		self.saving = False
 		del fp
 		t1 = time.time()
 		print "saved in %d sec" % (t1-t0)
 		del t1
 		del t0
+		self.saving = False
+
 		
     def stat(self):
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
