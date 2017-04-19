@@ -16,6 +16,7 @@ import math
 import time
 import zlib
 import bz2
+import os
 
 #global bfilter
 
@@ -33,7 +34,6 @@ def sha256(s):
 	h = hashlib.sha256()
 	h.update(s)
 	return h
-
 
 def shannon_entropy(data, iterator=None):
     """
@@ -78,8 +78,6 @@ class BloomFilter(object):
 	self.hashes = hashes                    # The number of hashes to use
 	self.bitset = 0
 	self.saving = False
-
-	#self.load()
 
     def len(self):
     	return len(self.bfilter)
@@ -167,19 +165,27 @@ class BloomFilter(object):
 	del _hash
 	return r
 
-    def load(self):
-	t0 = time.time()
-	print "loading bloom file:",self.filename
-	#SIZE = self.bitcount / 8
+    def _load(self,filename):
 	data = ''
-	fp = open(self.filename,'r')
-	recvbuf = fp.read(1024*128)
-	while len(recvbuf) > 0:
-		data += recvbuf
-		recvbuf = fp.read(1024*128) 
+        fp = open(filename,'rb')
+        recvbuf = fp.read(1024*128)
+        while len(recvbuf) > 0:
+                data += recvbuf
+                recvbuf = fp.read(1024*128)
         fp.close()
+	del recvbuf
+	del fp
+	return data
+
+    def load(self,filename=None):
+	t0 = time.time()
+	if filename != None:
+		fn = filename
+	else:
+		fn = self.filename
+	print "loading bloom file:",fn
+	data = self._load(fn)
 	ld = len(data)
-	
 	if ld >0:
 		data = bz2.decompress(data)
 		data = zlib.decompress(data)
@@ -188,9 +194,8 @@ class BloomFilter(object):
 		self.bitcount = len(self.bfilter) * 8
 		self.bitset = 0
 
-	del recvbuf
 	del data	
-	del fp
+	del fn
 	t1 = time.time()
 	print "Loaded: %d bytes, Inflated: %d bytes" % (ld,len(self.bfilter))
 	print "In: %d sec" % (t1-t0) 
@@ -198,22 +203,39 @@ class BloomFilter(object):
 	del t1 
 	del t0
 
-    def save(self):
-	if not self.saving:
-		self.saving = True
-		t0 = time.time()
-		print "saving bloom to:",self.filename
-        	fp = open(self.filename,'wb')
-	        fp.write(bz2.compress(zlib.compress(str(self.bfilter).encode('zlib'),9),9))
-        	fp.close()
-		del fp
-		t1 = time.time()
-		print "saved in %d sec" % (t1-t0)
-		del t1
-		del t0
-		self.saving = False
+    def _save(self,data,filename):
+        fp = open(filename,'wb')
+	fp.write(data)
+        fp.close()
+	del fp
 
-		
+    def _bkp(self,filename):
+	f1 = os.path.getsize(filename)
+	f2 = os.path.getsize('%s.bkp' % filename)
+	if f1 > f2:
+	    os.system('cp %s %s.bkp' % (filename,filename)
+	del f1
+	del f2	
+
+    def save(self,filename=None):
+	if not self.saving:
+	    self.saving = True
+	    t0 = time.time()
+	    if filename != None:
+		fn = filename
+	    else:
+		fn = self.filename
+	    self._bkp(fn)
+	    print "Saving bloom to:",fn
+	    data = bz2.compress(zlib.compress(str(self.bfilter).encode('zlib'),9),9)
+	    self._save(data,fn)
+	    del data
+	    t1 = time.time()
+	    print "saved in %d sec" % (t1-t0)
+	    del t1
+	    del t0
+	    self.saving = False
+
     def stat(self):
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
 
