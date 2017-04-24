@@ -27,8 +27,11 @@ Adding data to it:
     
 Adding data and at the same time querying it:
 
-    print bf.update('1')
-    print bf.update('2')
+    print bf.update('1') # True
+    print bf.update('1') # True
+    
+    print bf.update('2') # False
+    print bf.update('2') # True
 
 Printing stats:
 
