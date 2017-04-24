@@ -187,7 +187,7 @@ class BloomFilter(object):
 	del _hash
 	return r
 
-    def _load(self,filename):
+    def _readfile(self,filename):
 	data = ''
 	SIZE=1024*128
         fp = open(filename,'rb')
@@ -231,7 +231,7 @@ class BloomFilter(object):
 	else:
 		fn = self.filename
 	print "loading bloom file:",fn
-	data = self._load(fn)
+	data = self._feadfile(fn)
 	ld = len(data)
 	if ld >0:
 		data = self._decompress(data)
@@ -249,7 +249,7 @@ class BloomFilter(object):
 	del t1 
 	del t0
 
-    def _save(self,data,filename):
+    def _writefile(self,data,filename):
         fp = open(filename,'wb')
 	SIZE = 1024*128
 	for i in xrange(0,len(data)-1,SIZE):
@@ -300,7 +300,7 @@ class BloomFilter(object):
 	    print "Compressing..."
 	    data = self._compress(str(self.bfilter))
 	    print "Writing..."
-	    self._save(data,fn)
+	    self._writefile(data,fn)
 	    del data
 	    t1 = time.time()
 	    d = (t1-t0)
