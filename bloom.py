@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# based on https://gist.github.com/josephkern/2897618
 """A simple Bloom Filter implementation
 Calculating optimal filter size: 
             Where:
