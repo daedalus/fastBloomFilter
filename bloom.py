@@ -15,8 +15,12 @@ import mmap
 import math
 import time
 import zlib
+import lz4
+import lzo
 import bz2
 import os
+import numpy
+import bitshuffle
 
 #global bfilter
 
@@ -58,26 +62,40 @@ def shannon_entropy(data, iterator=None):
 
     return entropy
 
+def buff_shuffle(buff):
+        buff = numpy.frombuffer(buff)
+        buff = bitshuffle.bitshuffle(buff).tostring()
+        return buff
+
+def buff_unshuffle(buff):
+	buff = numpy.frombuffer(buff)
+	buff = bitshuffle.bitunshuffle(buff).tostring()
+	return buff
+
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
-    def __init__(self, array_size=((1024**3)*10), hashes=17,filename=None):
+    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashes=True,filename=None):
         """Initializes a BloomFilter() object:
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
                 hashes (int): for the number of hashes to perform"""
-
+	
 	self.filename = filename
-
 	if filename:
+
 		self.load()
 	else:
-	        self.bfilter = bytearray(array_size)     # The filter itself
+	        self.bfilter = bytearray(array_size)    # The filter itself
         	self.bitcount = array_size * 8          # Bits in the filter
 
-	self.hashes = hashes                    # The number of hashes to use
-	self.bitset = 0
-	self.saving = False
+	self.slices = slices                    	# The number of hashes to use
+	self.slice_bits = slice_bits			# n bits of the hash
+	self.bitset = 0					# n bits set in the bloom filter
+	self.do_hashes = do_hashes			# use a provided hash o compute it.
+	self.saving = False			
+	self.shuffle = False  				# shuffling the data before compression, it gains more compression ratio.
+	print "BLOOM: filename: %s do_hashes: %s slices: %d bits_per_slice: %d" % (self.filename, self.do_hashes, self.slices, self.slice_bits)
 
     def len(self):
     	return len(self.bfilter)
@@ -105,9 +123,12 @@ class BloomFilter(object):
 
         # Build an int() around the sha256 digest of int() -> value
         #value = value.__str__() # Comment out line if you're filtering strings()
-	digest = int(blake2b512(value).hexdigest(),16)
+	if self.do_hashes:
+		digest = int(blake2b512(value).hexdigest(),16)
+	else:
+		digest = value
 
-        for _ in range(self.hashes):
+        for _ in range(self.slices):
             # bitwise AND of the digest and all of the available bit positions 
             # in the filter
             yield digest & (self.bitcount - 1)
@@ -115,7 +136,7 @@ class BloomFilter(object):
             # divided by the number of hashes needed be produced. 
             # Rounding the result by using int().
             # So: digest >>= (256 / 13) would shift 19 bits to the right.
-            digest >>= (256 / self.hashes)
+            digest >>= (self.slice_bits / self.slices)
 	del digest
 
     def add(self, value):
@@ -140,7 +161,7 @@ class BloomFilter(object):
             # The purpose here is to spread out the hashes to create a unique 
             # "fingerprint" with unique locations in the filter array, 
             # rather than just a big long hash blob.
-	self.bitset += self.hashes
+	self.bitset += self.slices
 
     def query(self, value):
         """Bitwise AND to query values in self.filter
@@ -167,14 +188,39 @@ class BloomFilter(object):
 
     def _load(self,filename):
 	data = ''
+	SIZE=1024*128
         fp = open(filename,'rb')
-        recvbuf = fp.read(1024*128)
+        recvbuf = fp.read(SIZE)
         while len(recvbuf) > 0:
                 data += recvbuf
                 recvbuf = fp.read(1024*128)
         fp.close()
 	del recvbuf
 	del fp
+	del SIZE
+	return data
+   
+    def _decompress(self,data):
+	data = bz2.decompress(data)
+        data = zlib.decompress(data)
+        #data = zlib.decompress(data)
+        data = data.decode('zlib')
+	try:
+		data = lzo.decompress(data)
+	except:
+		pass
+        try:
+        	data = lz4.decompress(data)
+        except:
+        	pass
+
+	if self.shuffle == True:
+		try:
+			data = buff_unshuffle(data)
+			print "data unshuffled..."
+		except:
+			pass
+
 	return data
 
     def load(self,filename=None):
@@ -187,10 +233,9 @@ class BloomFilter(object):
 	data = self._load(fn)
 	ld = len(data)
 	if ld >0:
-		data = bz2.decompress(data)
-		data = zlib.decompress(data)
+		data = self._decompress(data)
 		self.bfilter = bytearray()
-		self.bfilter.extend(data.decode('zlib'))
+		self.bfilter.extend(data)
 		self.bitcount = len(self.bfilter) * 8
 		self.bitset = 0
 
@@ -205,18 +250,42 @@ class BloomFilter(object):
 
     def _save(self,data,filename):
         fp = open(filename,'wb')
-	fp.write(data)
+	SIZE = 1024*128
+	for i in xrange(0,len(data)-1,SIZE):
+		fp.write(data[i:i+SIZE])
         fp.close()
 	del fp
+	del SIZE
 
     def _bkp(self,filename):
 	f1 = os.path.getsize(filename)
 	f2 = os.path.getsize('%s.bkp' % filename)
 	if f1 > f2:
-	    os.system('cp %s %s.bkp' % (filename,filename)
+	    os.system('cp %s %s.bkp' % (filename,filename))
+	del f2
 	del f1
-	del f2	
 
+    def _compress(self, data):
+	if self.shuffle == True:
+		try:
+			data = buff_shuffle(data)
+			print "data shuffled..."
+		except:
+			pass
+	try:
+		data = lz4.compress(data)
+	except:
+		pass
+	try:
+		data = lzo.compress(data)
+	except:
+		pass
+	data = data.encode('zlib')
+	#data = zlib.compress(data,1)
+	data = zlib.compress(data,9)
+	data = bz2.compress(data,9)
+    	return data
+	
     def save(self,filename=None):
 	if not self.saving:
 	    self.saving = True
@@ -227,19 +296,24 @@ class BloomFilter(object):
 		fn = self.filename
 	    self._bkp(fn)
 	    print "Saving bloom to:",fn
-	    data = bz2.compress(zlib.compress(str(self.bfilter).encode('zlib'),9),9)
+	    print "Compressing..."
+	    data = self._compress(str(self.bfilter))
+	    print "Writing..."
 	    self._save(data,fn)
 	    del data
 	    t1 = time.time()
-	    print "saved in %d sec" % (t1-t0)
-	    del t1
-	    del t0
+	    d = (t1-t0)
+	    del t1 
+            del t0
+	    print "Saved in %d sec" % d
 	    self.saving = False
-
+	    return d
+ 
     def stat(self):
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
 
     def info(self):
+	print "BLOOM: filename: %s do_hashes: %s slices: %d bits_per_slice: %d" % (self.filename, self.do_hashes, self.slices, self.slice_bits)
 	self.calc_hashid()
 	self.calc_entropy()
 	self.stat()	
