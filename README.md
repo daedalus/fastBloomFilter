@@ -11,6 +11,10 @@ Installing Dependencies:
 
     sudo pip install lz4 lzo bz2 zlib bitshuffle sha3 hashlib numpy
 
+External creating of the bloom filter file:
+
+    python mkbloom.py > /tmp/filter.blf
+
 Importing:
 
     bf = BloomFilter()
@@ -22,6 +26,7 @@ Adding data to it:
     bf.add('1')
     
 Adding data and at the same time querying it:
+
     print bf.update('1')
     print bf.update('2')
 
