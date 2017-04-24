@@ -1,7 +1,13 @@
+import sys
 import zlib
 import bz2
 import lz4
 import brotli
-b = bytearray((1024**3)*5)
+import hashlib
 
-print bz2.compress(zlib.compress(str(b).encode('zlib'),9),9)
+import bloom
+
+bf = bloom.BloomFilter(array_size=(1024**3)*5,do_bkp=False)
+bf.filename = sys.argv[1]
+bf.save()
+
