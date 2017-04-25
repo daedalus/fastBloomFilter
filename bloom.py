@@ -19,6 +19,7 @@ import zlib
 import lz4
 import lzo
 import bz2
+import lzma
 import os
 import numpy
 import bitshuffle
@@ -222,11 +223,17 @@ class BloomFilter(object):
 	del SIZE
 	return data
    
-    def _decompress(self,data):
+    def _decompress(self,data): # a decompression funcion like lrzip in spirit: lzma<bz2<zlib<lz0<lz4
+	try:
+		data = lzma.decompress(data)
+	except:
+		pass
 	data = bz2.decompress(data)
         data = zlib.decompress(data)
-        #data = zlib.decompress(data)
-        data = data.decode('zlib')
+	try:
+        	data = data.decode('zlib')
+	except:
+		pass
 	try:
 		data = lzo.decompress(data)
 	except:
@@ -306,7 +313,7 @@ class BloomFilter(object):
 	del f2
 	del f1
 
-    def _compress(self, data):
+    def _compress(self, data): # a compression funcion like lrzip in spirit: lz4>lz0>zlib>bz2>lzma
 	if self.shuffle == True:
 		try:
 			print "shuffling..."
@@ -314,19 +321,23 @@ class BloomFilter(object):
 			print "data shuffled..."
 		except:
 			pass
-	try:
-		data = lz4.compress(data)
-	except:
-		pass
-	try:
-		data = lzo.compress(data)
-	except:
-		pass
+
 	print "Compressing..."
-	data = data.encode('zlib')
+	try:
+		data = lz4.compress(data) # will fail if data > 1GB
+	except:
+		pass
+	try:
+		data = lzo.compress(data) # will fail if data > 1GB
+	except:
+		pass
+	#data = data.encode('zlib')
 	#data = zlib.compress(data,1)
-	data = zlib.compress(data,9)
-	data = bz2.compress(data,9)
+	#data = zlib.compress(data,9)
+	#data = bz2.compress(data,9)
+	data = zlib.compress(data)
+	data = bz2.compress(data)
+	data = lzma.compress(data)
     	return data
 	
     def save(self,filename=None):
