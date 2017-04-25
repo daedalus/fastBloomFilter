@@ -13,7 +13,7 @@ Installing Dependencies:
 
 External creating of the bloom filter file:
 
-    python mkbloom.py > /tmp/filter.blf
+    python mkbloom.py /tmp/filter.blf
 
 Importing:
 
