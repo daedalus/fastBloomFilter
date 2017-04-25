@@ -2,10 +2,13 @@
 
 This filter supports: 
 
-    Saving, reloading, compressed bloomfilter file
+    Saving, reloading, compressed bloomfilter file lrzip like
+        for compression: lz4>lzo>zlib>bz2>lzma
+        for decompression: lzma>bz2>zlib>lzo>lz4
     Stats
     Entropy analysis
     Internal and external hashing of data.
+    raw filter merging
 
 Installing Dependencies:
 
