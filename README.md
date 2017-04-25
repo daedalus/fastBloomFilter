@@ -20,7 +20,7 @@ External creating of the bloom filter file:
 
 Importing:
 
-    bf = BloomFilter()
+    bf = BloomFilter(filename='/tmp/filter.blf')
 
 Adding data to it:
 
