@@ -84,7 +84,8 @@ class BloomFilter(object):
 
 
 	self.do_bkp = do_bkp
-	self.saving = False			
+	self.saving = False	
+	self.merging = False		
 	self.shuffle = bitshuffle  				# shuffling the data before compression, it gains more compression ratio.
 	self.header = 'BLOOM:\0\0\0\0'
 
@@ -122,6 +123,18 @@ class BloomFilter(object):
 	self.hashid = blake2b512(data)
 	del data
 	print "BLOOM: HASHID:", self.hashid.hexdigest()[0:8]
+
+    def _raw_merge(self,bfilter):
+	if self.merging = False:
+		self.merging = True
+		print "BLOOM: Merging..."
+		if len(bfilter) == len(self.bfilter):
+			for i in range(0,len(bfilter)-1):
+				self.bfilter[i] |= bfilter[i]
+		print "BLOOM: Merged Ok"
+		else:
+			print "Bloom filters are not conformable"
+		self.merging = False
 
     def _hash(self, value):
         """Creates a hash of an int and yields a generator of hash functions
