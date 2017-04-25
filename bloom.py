@@ -76,7 +76,7 @@ def buff_unshuffle(buff):
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
-    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashes=True,filename=None,do_bkp=True):
+    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashes=True,filename=None,do_bkp=True,bitshuffle=False):
         """Initializes a BloomFilter() object:
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
@@ -85,8 +85,13 @@ class BloomFilter(object):
 
 	self.do_bkp = do_bkp
 	self.saving = False			
-	self.shuffle = False  				# shuffling the data before compression, it gains more compression ratio.
+	self.shuffle = bitshuffle  				# shuffling the data before compression, it gains more compression ratio.
 	self.header = 'BLOOM:\0\0\0\0'
+
+	self.slices = slices                    	# The number of hashes to use
+	self.slice_bits = slice_bits			# n bits of the hash
+	self.bitset = 0					# n bits set in the bloom filter
+	self.do_hashes = do_hashes			# use a provided hash o compute it.
 	
 	self.filename = filename
 	if filename !=None and self.load() == True:
@@ -95,12 +100,9 @@ class BloomFilter(object):
 	        self.bfilter = bytearray(array_size)    # The filter itself
         	self.bitcount = array_size * 8          # Bits in the filter
 
-	self.slices = slices                    	# The number of hashes to use
-	self.slice_bits = slice_bits			# n bits of the hash
-	self.bitset = 0					# n bits set in the bloom filter
-	self.do_hashes = do_hashes			# use a provided hash o compute it.
 
-	print "BLOOM: filename: %s do_hashes: %s slices: %d bits_per_slice: %d" % (self.filename, self.do_hashes, self.slices, self.slice_bits)
+
+	print "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_slice: %d, do_bkp: %s, shuffle: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp,self.shuffle)
 
     def len(self):
     	return len(self.bfilter)
@@ -223,6 +225,7 @@ class BloomFilter(object):
 
 	if self.shuffle == True:
 		try:
+			print "unshuffling..."
 			data = buff_unshuffle(data)
 			print "data unshuffled..."
 		except:
@@ -242,10 +245,11 @@ class BloomFilter(object):
 	if ld >0:
 		data = self._decompress(data)
 		self.header=data[0:10]
+		print "HEADER:", self.header.encode('hex')
 		if self.header[0:6] == 'BLOOM:':
 			self.bfilter = bytearray()
-			self.hashid = blake2b512(data[11:])
-			self.bfilter.extend(data[11:])
+			self.hashid = blake2b512(data[10:])
+			self.bfilter.extend(data[10:])
 		else:
 			print "BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!"
 			self.bfilter = bytearray()
@@ -260,16 +264,22 @@ class BloomFilter(object):
 	t1 = time.time()
 	print "Loaded: %d bytes, Inflated: %d bytes" % (ld,len(self.bfilter))
 	print "In: %d sec" % (t1-t0) 
-	print "HASHID: ", self.hashid.hexdigest()[:8],self.header[7:].encode('hex')
+	print "HASHID: ", self.hashid.hexdigest()[:8],self.header[6:].encode('hex')
 	del ld
 	del t1 
 	del t0
 	return True
 
+    def _dump(self):
+	print "Dumping filter contents..."
+	for i in xrange(0,len(self.bfilter)-1,64):
+		print str(self.bfilter[i:i+64]).encode('hex')
+
+
     def _writefile(self,data,filename):
         fp = open(filename,'wb')
 	SIZE = 1024*128
-	for i in xrange(0,len(data),SIZE):
+	for i in xrange(0,len(data)-1,SIZE):
 		fp.write(data[i:i+SIZE])
         fp.close()
 	del fp
@@ -286,6 +296,7 @@ class BloomFilter(object):
     def _compress(self, data):
 	if self.shuffle == True:
 		try:
+			print "shuffling..."
 			data = buff_shuffle(data)
 			print "data shuffled..."
 		except:
@@ -298,6 +309,7 @@ class BloomFilter(object):
 		data = lzo.compress(data)
 	except:
 		pass
+	print "Compressing..."
 	data = data.encode('zlib')
 	#data = zlib.compress(data,1)
 	data = zlib.compress(data,9)
@@ -315,11 +327,11 @@ class BloomFilter(object):
 	    if self.do_bkp:
 	    	self._bkp(fn)
 	    print "Saving bloom to:",fn
-	    print "Compressing..."
-	    #self.header = "BLOOM:"
+
 	    data = str(self.bfilter)
             self.hashid = blake2b512(data)
 	    self.header = "BLOOM:" + self.hashid.digest()[0:4]
+	    #print len(self.header)
 	    data = self._compress(self.header+data)
 	    print "Writing..."
 	    self._writefile(data,fn)
