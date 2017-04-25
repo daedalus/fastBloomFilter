@@ -1,4 +1,4 @@
-# pythonic bloomfilter
+# Simple and fast pythonic bloomfilter
 
 This filter supports: 
 
