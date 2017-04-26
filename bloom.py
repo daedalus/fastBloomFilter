@@ -65,12 +65,13 @@ def shannon_entropy(data, iterator=None):
     return entropy
 
 def buff_shuffle(buff):
-        buff = numpy.frombuffer(buff)
+	print  len(buff)
+        buff = numpy.frombuffer(buff, dtype='S1')
         buff = bitshuffle.bitshuffle(buff).tostring()
         return buff
 
 def buff_unshuffle(buff):
-	buff = numpy.frombuffer(buff)
+	buff = numpy.frombuffer(buff,dtype='S1')
 	buff = bitshuffle.bitunshuffle(buff).tostring()
 	return buff
 
@@ -126,13 +127,13 @@ class BloomFilter(object):
 	print "BLOOM: HASHID:", self.hashid.hexdigest()[0:8]
 
     def _raw_merge(self,bfilter):
-	if self.merging = False:
+	if self.merging == False:
 		self.merging = True
 		print "BLOOM: Merging..."
 		if len(bfilter) == len(self.bfilter):
 			for i in range(0,len(bfilter)-1):
 				self.bfilter[i] |= bfilter[i]
-		print "BLOOM: Merged Ok"
+			print "BLOOM: Merged Ok"
 		else:
 			print "Bloom filters are not conformable"
 		self.merging = False
@@ -317,18 +318,20 @@ class BloomFilter(object):
 	if self.shuffle == True:
 		try:
 			print "shuffling..."
-			data = buff_shuffle(data)
+			data = buff_shuffle(data) # shuffling will work for a filter < 1GB
 			print "data shuffled..."
 		except:
 			pass
 
 	print "Compressing..."
 	try:
-		data = lz4.compress(data) # will fail if data > 1GB
+		data = lz4.compress(data) # will fail if filter > 1GB
+		print "lz4 ok"
 	except:
 		pass
 	try:
-		data = lzo.compress(data) # will fail if data > 1GB
+		data = lzo.compress(data) # will fail if filter > 1GB
+		print "lzo ok"
 	except:
 		pass
 	#data = data.encode('zlib')
