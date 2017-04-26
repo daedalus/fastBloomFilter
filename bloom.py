@@ -78,13 +78,14 @@ def buff_unshuffle(buff):
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
-    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashes=True,filename=None,do_bkp=True,bitshuffle=False):
+    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashes=True,filename=None,do_bkp=True,bitshuffle=False,reflink=False):
         """Initializes a BloomFilter() object:
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
                 hashes (int): for the number of hashes to perform"""
 
 
+	self.reflink = reflink # if supported by the underlying FS it will spare some copy cicles.
 	self.do_bkp = do_bkp
 	self.saving = False	
 	self.merging = False		
@@ -306,13 +307,21 @@ class BloomFilter(object):
 	del fp
 	del SIZE
 
-    def _bkp(self,filename):
+    def _bkp(self,filename,mv=False,reflink=False):
 	f1 = os.path.getsize(filename)
 	f2 = os.path.getsize('%s.bkp' % filename)
 	if f1 > f2:
-	    os.system('cp %s %s.bkp' % (filename,filename))
+		if mv:
+			cmd = 'mv %s %s.bkp' % (filename,filename)
+		else:
+	    		if reflink:
+				cmd = 'cp --reflink %s %s.bkp' % (filename,filename)
+			else:
+	    			cmd = 'cp %s %s.bkp' % (filename,filename)
+		os.system(cmd)
 	del f2
 	del f1
+	del cmd
 
     def _compress(self, data): # a compression funcion like lrzip in spirit: lz4>lz0>zlib>bz2>lzma
 	if self.shuffle == True:
@@ -352,7 +361,7 @@ class BloomFilter(object):
 	    else:
 		fn = self.filename
 	    if self.do_bkp:
-	    	self._bkp(fn)
+	    	self._bkp(fn,self.reflink)
 	    print "Saving bloom to:",fn
 
 	    data = str(self.bfilter)
