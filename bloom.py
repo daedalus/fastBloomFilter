@@ -284,8 +284,7 @@ class BloomFilter(object):
 	del data	
 	del fn
 	t1 = time.time()
-	print "Loaded: %d bytes, Inflated: %d bytes" % (ld,len(self.bfilter))
-	print "In: %d sec" % (t1-t0) 
+	print "Loaded: %d bytes, Inflated: %d bytes in: %d sec" % (ld,len(self.bfilter),(t1-t0)) 
 	print "HASHID: ", self.hashid.hexdigest()[:8],self.header[6:].encode('hex')
 	del ld
 	del t1 
@@ -311,14 +310,14 @@ class BloomFilter(object):
 	f1 = os.path.getsize(filename)
 	f2 = os.path.getsize('%s.bkp' % filename)
 	if f1 > f2:
-		if mv:
-			cmd = 'mv %s %s.bkp' % (filename,filename)
+	    if mv:
+		cmd = 'mv %s %s.bkp' % (filename,filename)
+	    else:
+	    	if reflink:
+		    cmd = 'cp --reflink %s %s.bkp' % (filename,filename)
 		else:
-	    		if reflink:
-				cmd = 'cp --reflink %s %s.bkp' % (filename,filename)
-			else:
-	    			cmd = 'cp %s %s.bkp' % (filename,filename)
-		os.system(cmd)
+	    	    cmd = 'cp %s %s.bkp' % (filename,filename)
+	    os.system(cmd)
 	del f2
 	del f1
 	del cmd
@@ -360,9 +359,13 @@ class BloomFilter(object):
 		fn = filename
 	    else:
 		fn = self.filename
-	    if self.do_bkp:
-	    	self._bkp(fn,self.reflink)
 	    print "Saving bloom to:",fn
+
+	    try:
+	    	if self.do_bkp:
+	    	    self._bkp(fn)
+	    except:
+		pass
 
 	    data = str(self.bfilter)
             self.hashid = blake2b512(data)
