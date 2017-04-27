@@ -6,7 +6,7 @@ try:
 except:
 	array_size = (1024**3)*5
 
-bf = bloom.BloomFilter(array_size=array_size,do_bkp=False, bitshuffle=True)
+bf = bloom.BloomFilter(array_size=array_size,do_bkp=False,do_hashing=False, bitshuffle=False)
 bf.filename = sys.argv[1]
 bf.save()
 

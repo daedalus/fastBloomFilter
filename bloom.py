@@ -78,7 +78,7 @@ def buff_unshuffle(buff):
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
-    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashes=True,filename=None,do_bkp=True,bitshuffle=False,reflink=False):
+    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashing=True,filename=None,do_bkp=True,bitshuffle=False,reflink=False):
         """Initializes a BloomFilter() object:
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
@@ -95,7 +95,7 @@ class BloomFilter(object):
 	self.slices = slices                    	# The number of hashes to use
 	self.slice_bits = slice_bits			# n bits of the hash
 	self.bitset = 0					# n bits set in the bloom filter
-	self.do_hashes = do_hashes			# use a provided hash o compute it.
+	self.do_hashes = do_hashing			# use a provided hash o compute it.
 	
 	self.filename = filename
 	if filename !=None and self.load() == True:
@@ -106,7 +106,7 @@ class BloomFilter(object):
 
 
 
-	print "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_slice: %d, do_bkp: %s, shuffle: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp,self.shuffle)
+	print "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s, shuffle: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp,self.shuffle)
 
     def len(self):
     	return len(self.bfilter)
@@ -151,7 +151,7 @@ class BloomFilter(object):
 	if self.do_hashes:
 		digest = int(blake2b512(value).hexdigest(),16)
 	else:
-		digest = value
+		digest = int(value.encode('hex'),16)
 
         for _ in range(self.slices):
             # bitwise AND of the digest and all of the available bit positions 
