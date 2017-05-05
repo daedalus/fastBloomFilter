@@ -202,8 +202,7 @@ class BloomFilter(object):
 
     def _query(self,_hash):
 	#global bfilter
-	return all(self.bfilter[(digest)]) 
-            for digest in _hash)
+	return all(self.bfilter[digest] for digest in _hash)
 
     def update(self,value):
 	_hash = self._hash(value)
@@ -271,7 +270,7 @@ class BloomFilter(object):
 		self.header=data[0:10]
 		print "HEADER:", self.header.encode('hex')
 		if self.header[0:6] == 'BLOOM:':
-			self.bfilter = bytearray()
+			self.bfilter = bitarray.bitarray()
 			self.hashid = blake2b512(data[10:])
 			self.bfilter.frombytes(data[10:])
 		else:
