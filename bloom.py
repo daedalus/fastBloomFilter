@@ -103,7 +103,7 @@ class BloomFilter(object):
 		print "BLOOM: Loaded OK"
 	else:
 	        #self.bfilter = bytearray(array_size)    # The filter itself
-		self.bfilter = bitarray.bitarray(endian='little')
+		self.bfilter = bitarray.bitarray(array_size*8,endian='little')
         	self.bitcount = array_size * 8          # Bits in the filter
 
 
@@ -401,7 +401,7 @@ class BloomFilter(object):
 	self.stat()	
 
 if __name__ == "__main__":
-    bf = BloomFilter()
+    bf = BloomFilter(1024**3)
 
     bf.add('30000')
     bf.add('1230213')
@@ -409,7 +409,7 @@ if __name__ == "__main__":
 
     bf.stat()
 
-    print("Filter size {0} bytes").format(bf.filter.__sizeof__())
+    print("Filter size {0} bytes").format(len(bf.bfilter))
     print bf.query('1') # True
     print bf.query('1230213') # True
     print bf.query('12') # False
