@@ -23,6 +23,7 @@ import lzma
 import os
 import numpy
 import bitshuffle
+import bitarray
 
 #global bfilter
 
@@ -101,7 +102,8 @@ class BloomFilter(object):
 	if filename !=None and self.load() == True:
 		print "BLOOM: Loaded OK"
 	else:
-	        self.bfilter = bytearray(array_size)    # The filter itself
+	        #self.bfilter = bytearray(array_size)    # The filter itself
+		self.bfilter = bitarray.bitarray(array_size * 8)
         	self.bitcount = array_size * 8          # Bits in the filter
 
 
@@ -122,7 +124,7 @@ class BloomFilter(object):
 	print "Entropy: %1.8f" % self.entropy 
 
     def calc_hashid(self):
-	data = str(self.bfilter)
+	data = self.bfilter.tobytes()
 	self.hashid = blake2b512(data)
 	del data
 	print "BLOOM: HASHID:", self.hashid.hexdigest()[0:8]
@@ -182,7 +184,7 @@ class BloomFilter(object):
             # 2 to the power of digest modulo 8. Ex: 2 ** (30034 % 8) 
             # to grantee the value is <= 128, the bytearray not being able 
             # to store a value >= 256. Q: Why not use ((modulo 9) -1) then?
-            self.bfilter[(digest / 8)] |= (2 ** (digest % 8))
+            self.bfilter[digest] = True 
             # The purpose here is to spread out the hashes to create a unique 
             # "fingerprint" with unique locations in the filter array, 
             # rather than just a big long hash blob.
@@ -200,7 +202,7 @@ class BloomFilter(object):
 
     def _query(self,_hash):
 	#global bfilter
-	return all(self.bfilter[(digest / 8)] & (2 ** (digest % 8)) 
+	return all(self.bfilter[(digest)]) 
             for digest in _hash)
 
     def update(self,value):
@@ -274,7 +276,8 @@ class BloomFilter(object):
 			self.bfilter.extend(data[10:])
 		else:
 			print "BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!"
-			self.bfilter = bytearray()
+			#self.bfilter = bytearray()
+			self.bfilter = bitarray.bitarray()
 			#self.hashid = blake2b512(data)
                         self.bfilter.extend(data)
                 self.bitcount = len(self.bfilter) * 8
@@ -367,20 +370,22 @@ class BloomFilter(object):
 	    except:
 		pass
 
-	    data = str(self.bfilter)
+	    data = self.bfilter.tobytes()
             self.hashid = blake2b512(data)
 	    self.header = "BLOOM:" + self.hashid.digest()[0:4]
 	    #print len(self.header)
 	    data = self._compress(self.header+data)
 	    print "Writing..."
 	    self._writefile(data,fn)
+	    lc=len(data)
 	    del data
 	    t1 = time.time()
 	    d = (t1-t0)
 	    del t1 
             del t0
-	    print "Saved in %d sec, HASHID: %s" % (d,self.hashid.hexdigest()[0:8])
+	    print "Saved %d MB in %d sec, HASHID: %s" % (d,(lc//(1024**2)),self.hashid.hexdigest()[0:8])
 	    self.saving = False
+	    del lc
 	    return d
  
     def stat(self):
