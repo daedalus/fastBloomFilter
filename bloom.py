@@ -273,13 +273,13 @@ class BloomFilter(object):
 		if self.header[0:6] == 'BLOOM:':
 			self.bfilter = bytearray()
 			self.hashid = blake2b512(data[10:])
-			self.bfilter.extend(data[10:])
+			self.bfilter.frombytes(data[10:])
 		else:
 			print "BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!"
 			#self.bfilter = bytearray()
 			self.bfilter = bitarray.bitarray()
 			#self.hashid = blake2b512(data)
-                        self.bfilter.extend(data)
+                        self.bfilter.frombytes(data)
                 self.bitcount = len(self.bfilter) * 8
                 self.bitset = 0
 		#return True	
