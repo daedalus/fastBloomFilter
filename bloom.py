@@ -103,7 +103,7 @@ class BloomFilter(object):
 		print "BLOOM: Loaded OK"
 	else:
 	        #self.bfilter = bytearray(array_size)    # The filter itself
-		self.bfilter = bitarray.bitarray(array_size * 8)
+		self.bfilter = bitarray.bitarray(endian='little')
         	self.bitcount = array_size * 8          # Bits in the filter
 
 
@@ -271,23 +271,26 @@ class BloomFilter(object):
 		self.header=data[0:10]
 		print "HEADER:", self.header.encode('hex')
 		if self.header[0:6] == 'BLOOM:':
-			self.bfilter = bitarray.bitarray()
-			self.hashid = blake2b512(data[10:])
+			self.bfilter = bitarray.bitarray(endian='little')
+			#self.hashid = blake2b512(data[10:])
 			self.bfilter.frombytes(data[10:])
+			del data
+			self.hashid = blake2b512(self.bfilter.tobytes())
 		else:
 			print "BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!"
 			#self.bfilter = bytearray()
-			self.bfilter = bitarray.bitarray()
+			self.bfilter = bitarray.bitarray(endian='little')
 			#self.hashid = blake2b512(data)
                         self.bfilter.frombytes(data)
+			del data
                 self.bitcount = len(self.bfilter)
                 self.bitset = 0
 		#return True	
 
-	del data	
+	#del data	
 	del fn
 	t1 = time.time()
-	print "Loaded: %d bytes, Inflated: %d bytes in: %d sec" % (ld,len(self.bfilter),(t1-t0)) 
+	print "Loaded: %d bytes, Inflated: %d bytes in: %d sec" % (ld,(self.bitcount/8),(t1-t0)) 
 	print "HASHID: ", self.hashid.hexdigest()[:8],self.header[6:].encode('hex')
 	del ld
 	del t1 
