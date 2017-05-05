@@ -184,7 +184,8 @@ class BloomFilter(object):
             # 2 to the power of digest modulo 8. Ex: 2 ** (30034 % 8) 
             # to grantee the value is <= 128, the bytearray not being able 
             # to store a value >= 256. Q: Why not use ((modulo 9) -1) then?
-            self.bfilter[(digest/8)] = True 
+            self.bfilter[digest] = True 
+
             # The purpose here is to spread out the hashes to create a unique 
             # "fingerprint" with unique locations in the filter array, 
             # rather than just a big long hash blob.
@@ -202,7 +203,7 @@ class BloomFilter(object):
 
     def _query(self,_hash):
 	#global bfilter
-	return all(self.bfilter[(digest/8)] for digest in _hash)
+	return all(self.bfilter[digest] for digest in _hash)
 
     def update(self,value):
 	_hash = self._hash(value)
@@ -279,7 +280,7 @@ class BloomFilter(object):
 			self.bfilter = bitarray.bitarray()
 			#self.hashid = blake2b512(data)
                         self.bfilter.frombytes(data)
-                self.bitcount = len(self.bfilter) * 8
+                self.bitcount = len(self.bfilter)
                 self.bitset = 0
 		#return True	
 
