@@ -24,6 +24,7 @@ import os
 import numpy
 import bitshuffle
 import bitarray
+from itertools import tee
 
 #global bfilter
 
@@ -76,6 +77,12 @@ def buff_unshuffle(buff):
 	buff = bitshuffle.bitunshuffle(buff).tostring()
 	return buff
 
+def display(digest):
+	str_i = "Display: "
+	for i in digest:
+		str_i += str(i) + " "
+	print str_i
+
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
@@ -89,6 +96,7 @@ class BloomFilter(object):
 	self.reflink = reflink # if supported by the underlying FS it will spare some copy cicles.
 	self.do_bkp = do_bkp
 	self.saving = False	
+	self.bitcalc = True
 	self.merging = False		
 	self.shuffle = bitshuffle  				# shuffling the data before compression, it gains more compression ratio.
 	self.header = 'BLOOM:\0\0\0\0'
@@ -155,7 +163,7 @@ class BloomFilter(object):
 	else:
 		digest = int(value.encode('hex'),16)
 
-        for _ in range(self.slices):
+        for _ in range(0,self.slices):
             # bitwise AND of the digest and all of the available bit positions 
             # in the filter
             yield digest & (self.bitcount - 1)
@@ -175,9 +183,9 @@ class BloomFilter(object):
 	self._add(_hash)
 	del _hash
 
-    def _add(self,_hash):
+    def _add(self,__hash):
 	#global filter
-        for digest in _hash:
+        for digest in __hash:
             # In-place bitwise OR of the filter, position is determined 
             # by the (digest / 8) digest is described above in self._hash()
             # Bitwise OR is undertaken on the value at the location and 
@@ -198,19 +206,19 @@ class BloomFilter(object):
         # If all() hashes return True from a bitwise AND (the opposite 
         # described above in self.add()) for each digest returned from 
         # self._hash return True, else False
-	_hash = self._hash(value)
-	return self._query(_hash)    
+	__hash = self._hash(value)
+	return self._query(__hash)    
 
-    def _query(self,_hash):
+    def _query(self,__hash):
 	#global bfilter
-	return all(self.bfilter[digest] for digest in _hash)
+	return all(self.bfilter[digest] for digest in __hash)
 
     def update(self,value):
-	_hash = self._hash(value)
-	r = self._query(_hash)
-	if not r:
-		self._add(_hash)
-	del _hash
+	__hash = list(self._hash(value))
+	r = self._query(__hash)
+	if r == False:
+		self._add(__hash)
+	del __hash
 	return r
 
     def _readfile(self,filename):
@@ -392,6 +400,10 @@ class BloomFilter(object):
 	    return d
  
     def stat(self):
+	if self.bitcalc:
+		i = self.bfilter.buffer_info()
+		self.bitset = (i[1]-i[4])
+		del i
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
 
     def info(self):
@@ -401,18 +413,23 @@ class BloomFilter(object):
 	self.stat()	
 
 if __name__ == "__main__":
-    bf = BloomFilter(1024**3)
+    bf = BloomFilter(1024**3,slices=17,slice_bits=256,do_hashing=True)
 
-    bf.add('30000')
-    bf.add('1230213')
-    bf.add('1')
+    #bf.add('30000')
+    #bf.add('1230213')
+    print bf.update('1')
+    print bf.update('1')
+    #print bf.add('1')
+
+
+
 
     bf.stat()
 
     print("Filter size {0} bytes").format(len(bf.bfilter))
-    print bf.query('1') # True
-    print bf.query('1230213') # True
-    print bf.query('12') # False
+    #print bf.query('1') # True
+    #print bf.query('1230213') # True
+    #print bf.query('12') # False
 
     t0 = time.time()
     #bf.save('/tmp/test.bloom')
