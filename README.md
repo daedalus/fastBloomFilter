@@ -12,7 +12,7 @@ This filter supports:
 
 Installing Dependencies:
 
-    sudo pip install lz4 lzo bz2 zlib bitshuffle sha3 hashlib numpy bitarray
+    sudo pip install lz4 lzo bz2 zlib sha3 hashlib bitarray
 
 External creating of the bloom filter file:
 
