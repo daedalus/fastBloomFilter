@@ -9,6 +9,8 @@ Calculating optimal filter size:
             (1 - math.exp(-float(k * n) / m)) ** k 
 http://en.wikipedia.org/wiki/Bloom_filter
 """
+# Author Dario Clavijo 2017
+# GPLv3
 
 import sha3
 import hashlib
