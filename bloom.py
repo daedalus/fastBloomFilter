@@ -22,9 +22,8 @@ import bz2
 import lzma
 import os
 import numpy
-import bitshuffle
 import bitarray
-from itertools import tee
+#from itertools import tee
 
 #global bfilter
 
@@ -66,17 +65,6 @@ def shannon_entropy(data, iterator=None):
 
     return entropy
 
-def buff_shuffle(buff):
-	print  len(buff)
-        buff = numpy.frombuffer(buff, dtype='S1')
-        buff = bitshuffle.bitshuffle(buff).tostring()
-        return buff
-
-def buff_unshuffle(buff):
-	buff = numpy.frombuffer(buff,dtype='S1')
-	buff = bitshuffle.bitunshuffle(buff).tostring()
-	return buff
-
 def display(digest):
 	str_i = "Display: "
 	for i in digest:
@@ -86,7 +74,7 @@ def display(digest):
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
-    def __init__(self, array_size=((1024**3)*10), slices=17,slice_bits=256,do_hashing=True,filename=None,do_bkp=True,bitshuffle=False,reflink=False):
+    def __init__(self, array_size=((1024**3)*1), slices=10,slice_bits=256,do_hashing=True,filename=None,do_bkp=True,reflink=False,fast=False):
         """Initializes a BloomFilter() object:
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
@@ -96,15 +84,17 @@ class BloomFilter(object):
 	self.reflink = reflink # if supported by the underlying FS it will spare some copy cicles.
 	self.do_bkp = do_bkp
 	self.saving = False	
-	self.bitcalc = True
+	self.bitcalc = False
 	self.merging = False		
-	self.shuffle = bitshuffle  				# shuffling the data before compression, it gains more compression ratio.
+	self.fast = fast
 	self.header = 'BLOOM:\0\0\0\0'
 
 	self.slices = slices                    	# The number of hashes to use
 	self.slice_bits = slice_bits			# n bits of the hash
 	self.bitset = 0					# n bits set in the bloom filter
 	self.do_hashes = do_hashing			# use a provided hash o compute it.
+	self.hits = 0
+	self.tryes = 0
 	
 	self.filename = filename
 	if filename !=None and self.load() == True:
@@ -163,16 +153,19 @@ class BloomFilter(object):
 	else:
 		digest = int(value.encode('hex'),16)
 
-        for _ in range(0,self.slices):
+	if self.fast:
+		yield (digest % self.bitcount)
+	else:
+        	for _ in range(0,self.slices):
             # bitwise AND of the digest and all of the available bit positions 
             # in the filter
-            yield digest & (self.bitcount - 1)
+            		yield digest & (self.bitcount - 1)
             # Shift bits in digest to the right, based on 256 (in sha256)
             # divided by the number of hashes needed be produced. 
             # Rounding the result by using int().
             # So: digest >>= (256 / 13) would shift 19 bits to the right.
-            digest >>= (self.slice_bits / self.slices)
-	del digest
+            		digest >>= (self.slice_bits / self.slices)
+		del digest
 
     def add(self, value):
         """Bitwise OR to add value(s) into the self.filter
@@ -197,7 +190,10 @@ class BloomFilter(object):
             # The purpose here is to spread out the hashes to create a unique 
             # "fingerprint" with unique locations in the filter array, 
             # rather than just a big long hash blob.
-	self.bitset += self.slices
+	if self.fast:
+		self.bitset += 1
+	else:
+		self.bitset += self.slices
 
     def query(self, value):
         """Bitwise AND to query values in self.filter
@@ -211,7 +207,11 @@ class BloomFilter(object):
 
     def _query(self,__hash):
 	#global bfilter
-	return all(self.bfilter[digest] for digest in __hash)
+	ret = all(self.bfilter[digest] for digest in __hash)
+	if ret:
+		self.hit += 1
+	self.tryes += 1
+	return ret
 
     def update(self,value):
 	__hash = list(self._hash(value))
@@ -254,14 +254,6 @@ class BloomFilter(object):
         	data = lz4.decompress(data)
         except:
         	pass
-
-	if self.shuffle == True:
-		try:
-			print "unshuffling..."
-			data = buff_unshuffle(data)
-			print "data unshuffled..."
-		except:
-			pass
 
 	return data
 
@@ -337,14 +329,6 @@ class BloomFilter(object):
 	del cmd
 
     def _compress(self, data): # a compression funcion like lrzip in spirit: lz4>lz0>zlib>bz2>lzma
-	if self.shuffle == True:
-		try:
-			print "shuffling..."
-			data = buff_shuffle(data) # shuffling will work for a filter < 1GB
-			print "data shuffled..."
-		except:
-			pass
-
 	print "Compressing..."
 	try:
 		data = lz4.compress(data) # will fail if filter > 1GB
@@ -402,12 +386,14 @@ class BloomFilter(object):
     def stat(self):
 	if self.bitcalc:
 		i = self.bfilter.buffer_info()
+		print i
 		self.bitset = (i[1]-i[4])
 		del i
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
+	print "BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f" % (self.hits,self.tryes, (float(self.hits/self.tryes)*100)) + "%"
 
     def info(self):
-	print "BLOOM: filename: %s do_hashes: %s slices: %d bits_per_slice: %d" % (self.filename, self.do_hashes, self.slices, self.slice_bits)
+	print "BLOOM: filename: %si, do_hashes: %s, slices: %d, bits_per_slice: %d, fast: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.fast)
 	self.calc_hashid()
 	self.calc_entropy()
 	self.stat()	
@@ -418,13 +404,10 @@ if __name__ == "__main__":
     #bf.add('30000')
     #bf.add('1230213')
     print bf.update('1')
-    print bf.update('1')
-    #print bf.add('1')
-
-
-
-
-    bf.stat()
+    for i in xrange(0,1000):
+	    print bf.update(str(i))
+            bf.stat()
+    print bf.add('1')
 
     print("Filter size {0} bytes").format(len(bf.bfilter))
     #print bf.query('1') # True
