@@ -21,11 +21,7 @@ import lzo
 import bz2
 import lzma
 import os
-import numpy
 import bitarray
-#from itertools import tee
-
-#global bfilter
 
 def blake2b512(s):
 	h = hashlib.new('blake2b512')
