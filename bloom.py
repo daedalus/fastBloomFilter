@@ -92,7 +92,7 @@ class BloomFilter(object):
 	self.bitset = 0					# n bits set in the bloom filter
 	self.do_hashes = do_hashing			# use a provided hash o compute it.
 	self.hits = 0
-	self.tryes = 0
+	self.queryes = 0
 	
 	self.filename = filename
 	if filename !=None and self.load() == True:
@@ -104,7 +104,7 @@ class BloomFilter(object):
 
 
 
-	print "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s, shuffle: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp,self.shuffle)
+	print "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp)
 
     def len(self):
     	return len(self.bfilter)
@@ -207,8 +207,8 @@ class BloomFilter(object):
 	#global bfilter
 	ret = all(self.bfilter[digest] for digest in __hash)
 	if ret:
-		self.hit += 1
-	self.tryes += 1
+		self.hits += 1
+	self.queryes += 1
 	return ret
 
     def update(self,value):
@@ -388,7 +388,7 @@ class BloomFilter(object):
 		self.bitset = (i[1]-i[4])
 		del i
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
-	print "BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f" % (self.hits,self.tryes, (float(self.hits/self.tryes)*100)) + "%"
+	print "BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f" % (self.hits,self.tryes, (float(self.hits/self.queryes)*100)) + "%"
 
     def info(self):
 	print "BLOOM: filename: %si, do_hashes: %s, slices: %d, bits_per_slice: %d, fast: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.fast)
