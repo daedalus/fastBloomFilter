@@ -49,3 +49,8 @@ Querying data:
     print bf.query('1') # True
     print bf.query('1230213') # True
     print bf.query('12') # False
+
+
+TODO:
+    
+    Packaging needed
