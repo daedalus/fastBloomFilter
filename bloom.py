@@ -134,7 +134,7 @@ class BloomFilter(object):
 				self.bfilter[i] |= bfilter[i]
 			print "BLOOM: Merged Ok"
 		else:
-			print "Bloom filters are not conformable"
+			print "BLOOM: filters are not conformable"
 		self.merging = False
 
     def _hash(self, value):
@@ -261,7 +261,7 @@ class BloomFilter(object):
 		fn = filename
 	else:
 		fn = self.filename
-	print "loading bloom file:",fn
+	print "BLOOM: loading filter from file:",fn
 	data = self._readfile(fn)
 	ld = len(data)
 	if ld >0:
@@ -288,15 +288,15 @@ class BloomFilter(object):
 	#del data	
 	del fn
 	t1 = time.time()
-	print "Loaded: %d bytes, Inflated: %d bytes in: %d sec" % (ld,(self.bitcount/8),(t1-t0)) 
-	print "HASHID: ", self.hashid.hexdigest()[:8],self.header[6:].encode('hex')
+	print "BLOOM: Loaded: %d bytes, Inflated: %d bytes in: %d sec" % (ld,(self.bitcount/8),(t1-t0)) 
+	print "BLOOM: HASHID: ", self.hashid.hexdigest()[:8],self.header[6:].encode('hex')
 	del ld
 	del t1 
 	del t0
 	return True
 
     def _dump(self):
-	print "Dumping filter contents..."
+	print "BLOOM: Dumping filter contents..."
 	for i in xrange(0,len(self.bfilter)-1,64):
 		print str(self.bfilter[i:i+64]).encode('hex')
 
@@ -327,7 +327,7 @@ class BloomFilter(object):
 	del cmd
 
     def _compress(self, data): # a compression funcion like lrzip in spirit: lz4>lz0>zlib>bz2>lzma
-	print "Compressing..."
+	print "BLOOM: Compressing..."
 	try:
 		data = lz4.compress(data) # will fail if filter > 1GB
 		print "lz4 ok"
@@ -355,7 +355,7 @@ class BloomFilter(object):
 		fn = filename
 	    else:
 		fn = self.filename
-	    print "Saving bloom to:",fn
+	    print "BLOOM: Saving filter to file:",fn
 
 	    try:
 	    	if self.do_bkp:
@@ -368,7 +368,7 @@ class BloomFilter(object):
 	    self.header = "BLOOM:" + self.hashid.digest()[0:4]
 	    #print len(self.header)
 	    data = self._compress(self.header+data)
-	    print "Writing..."
+	    print "BLOOM: Writing..."
 	    self._writefile(data,fn)
 	    lc=len(data)
 	    del data
@@ -376,7 +376,7 @@ class BloomFilter(object):
 	    d = (t1-t0)
 	    del t1 
             del t0
-	    print "Saved %d MB in %d sec, HASHID: %s" % (d,(lc//(1024**2)),self.hashid.hexdigest()[0:8])
+	    print "BLOOM: Saved %d MB in %d sec, HASHID: %s" % (d,(lc//(1024**2)),self.hashid.hexdigest()[0:8])
 	    self.saving = False
 	    del lc
 	    return d
@@ -388,7 +388,7 @@ class BloomFilter(object):
 		self.bitset = (i[1]-i[4])
 		del i
 	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
-	print "BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f" % (self.hits,self.tryes, (float(self.hits/self.queryes)*100)) + "%"
+	print "BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f" % (self.hits,self.queryes, (float(self.hits/self.queryes)*100)) + "%"
 
     def info(self):
 	print "BLOOM: filename: %si, do_hashes: %s, slices: %d, bits_per_slice: %d, fast: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.fast)
