@@ -249,7 +249,7 @@ class BloomFilter(object):
 	except:
 		pass
         try:
-        	data = lz4.decompress(data)
+        	data = lz4.block.decompress(data)
         except:
         	pass
 
@@ -329,7 +329,7 @@ class BloomFilter(object):
     def _compress(self, data): # a compression funcion like lrzip in spirit: lz4>lz0>zlib>bz2>lzma
 	print "BLOOM: Compressing..."
 	try:
-		data = lz4.compress(data) # will fail if filter > 1GB
+		data = lz4.block.compress(data) # will fail if filter > 1GB
 		print "lz4 ok"
 	except:
 		pass
