@@ -265,7 +265,7 @@ class BloomFilter(object):
 	if ld >0:
 		data = self._decompress(data)
 		self.header=data[0:10]
-		sys.stderr.write("HEADER: %s\n", self.header.encode('hex'))
+		sys.stderr.write("HEADER: %s\n" % self.header.encode('hex'))
 		if self.header[0:6] == 'BLOOM:':
 			self.bfilter = bitarray.bitarray(endian='little')
 			#self.hashid = blake2b512(data[10:])
