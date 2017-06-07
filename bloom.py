@@ -24,6 +24,7 @@ import bz2
 import lzma
 import os
 import bitarray
+import sys
 
 def blake2b512(s):
 	h = hashlib.new('blake2b512')
@@ -67,7 +68,7 @@ def display(digest):
 	str_i = "Display: "
 	for i in digest:
 		str_i += str(i) + " "
-	print str_i
+	sys.stderr.write(str_i)
 
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
@@ -77,7 +78,6 @@ class BloomFilter(object):
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
                 hashes (int): for the number of hashes to perform"""
-
 
 	self.reflink = reflink # if supported by the underlying FS it will spare some copy cicles.
 	self.do_bkp = do_bkp
@@ -96,15 +96,13 @@ class BloomFilter(object):
 	
 	self.filename = filename
 	if filename !=None and self.load() == True:
-		print "BLOOM: Loaded OK"
+		sys.stderr.write("BLOOM: Loaded OK\n")
 	else:
 	        #self.bfilter = bytearray(array_size)    # The filter itself
 		self.bfilter = bitarray.bitarray(array_size*8,endian='little')
         	self.bitcount = array_size * 8          # Bits in the filter
 
-
-
-	print "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp)
+	sys.stderr.write("BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s\n" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp))
 
     def len(self):
     	return len(self.bfilter)
@@ -113,28 +111,28 @@ class BloomFilter(object):
 	hashes = int(math.ceil(math.log(1.0 / error_rate, 2)))
 	bits_per_hash = int(math.ceil((capacity * abs(math.log(error_rate))) /(num_slices * (math.log(2) ** 2))))
 	bitcount = bits_per_hash * hashes
-	print self.hashes,self.bits_per_hash,self.bitcount
+	sys.stderr.write("Hashes: %d, bit_per_hash: %d bitcount: %d\n" % (self.hashes,self.bits_per_hash,self.bitcount))
 
     def calc_entropy(self):
 	self.entropy = shannon_entropy(self.bfilter)
-	print "Entropy: %1.8f" % self.entropy 
+	sys.stderr.write("Entropy: %1.8f\n" % self.entropy)
 
     def calc_hashid(self):
 	data = self.bfilter.tobytes()
 	self.hashid = blake2b512(data)
 	del data
-	print "BLOOM: HASHID:", self.hashid.hexdigest()[0:8]
+	sys.stderr.write("BLOOM: HASHID: %S\n" % self.hashid.hexdigest()[0:8])
 
     def _raw_merge(self,bfilter):
 	if self.merging == False:
 		self.merging = True
-		print "BLOOM: Merging..."
+		sys.stderr.write( "BLOOM: Merging...\n")
 		if len(bfilter) == len(self.bfilter):
 			for i in range(0,len(bfilter)-1):
 				self.bfilter[i] |= bfilter[i]
-			print "BLOOM: Merged Ok"
+			sys.stderr.write("BLOOM: Merged Ok\n")
 		else:
-			print "BLOOM: filters are not conformable"
+			sys.stderr.write("BLOOM: filters are not conformable\n")
 		self.merging = False
 
     def _hash(self, value):
@@ -155,13 +153,13 @@ class BloomFilter(object):
 		yield (digest % self.bitcount)
 	else:
         	for _ in range(0,self.slices):
-            # bitwise AND of the digest and all of the available bit positions 
-            # in the filter
+	        	# bitwise AND of the digest and all of the available bit positions 
+	        	# in the filter
             		yield digest & (self.bitcount - 1)
-            # Shift bits in digest to the right, based on 256 (in sha256)
-            # divided by the number of hashes needed be produced. 
-            # Rounding the result by using int().
-            # So: digest >>= (256 / 13) would shift 19 bits to the right.
+        	    	# Shift bits in digest to the right, based on 256 (in sha256)
+	            	# divided by the number of hashes needed be produced. 
+        	    	# Rounding the result by using int().
+            		# So: digest >>= (256 / 13) would shift 19 bits to the right.
             		digest >>= (self.slice_bits / self.slices)
 		del digest
 
@@ -186,7 +184,7 @@ class BloomFilter(object):
             self.bfilter[digest] = True 
 
             # The purpose here is to spread out the hashes to create a unique 
-            # "fingerprint" with unique locations in the filter array, 
+            # "fingersys.stderr.write(" with unique locations in the filter array, 
             # rather than just a big long hash blob.
 	if self.fast:
 		self.bitset += 1
@@ -261,13 +259,13 @@ class BloomFilter(object):
 		fn = filename
 	else:
 		fn = self.filename
-	print "BLOOM: loading filter from file:",fn
+	sys.stderr.write("BLOOM: loading filter from file: %s\n" % fn)
 	data = self._readfile(fn)
 	ld = len(data)
 	if ld >0:
 		data = self._decompress(data)
 		self.header=data[0:10]
-		print "HEADER:", self.header.encode('hex')
+		sys.stderr.write("HEADER: %s\n", self.header.encode('hex'))
 		if self.header[0:6] == 'BLOOM:':
 			self.bfilter = bitarray.bitarray(endian='little')
 			#self.hashid = blake2b512(data[10:])
@@ -275,7 +273,7 @@ class BloomFilter(object):
 			del data
 			self.hashid = blake2b512(self.bfilter.tobytes())
 		else:
-			print "BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!"
+			sys.stderr.write("BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!\n")
 			#self.bfilter = bytearray()
 			self.bfilter = bitarray.bitarray(endian='little')
 			#self.hashid = blake2b512(data)
@@ -288,17 +286,17 @@ class BloomFilter(object):
 	#del data	
 	del fn
 	t1 = time.time()
-	print "BLOOM: Loaded: %d bytes, Inflated: %d bytes in: %d sec" % (ld,(self.bitcount/8),(t1-t0)) 
-	print "BLOOM: HASHID: ", self.hashid.hexdigest()[:8],self.header[6:].encode('hex')
+	sys.stderr.write("BLOOM: Loaded: %d bytes, Inflated: %d bytes in: %d sec\n" % (ld,(self.bitcount/8),(t1-t0)))
+	sys.stderr.write("BLOOM: HASHID: %s %s\n" % (self.hashid.hexdigest()[:8],self.header[6:].encode('hex')))
 	del ld
 	del t1 
 	del t0
 	return True
 
     def _dump(self):
-	print "BLOOM: Dumping filter contents..."
+	sys.stderr.write("BLOOM: Dumping filter contents...\n")
 	for i in xrange(0,len(self.bfilter)-1,64):
-		print str(self.bfilter[i:i+64]).encode('hex')
+		sys.stderr.write(str(self.bfilter[i:i+64]).encode('hex'))
 
 
     def _writefile(self,data,filename):
@@ -327,15 +325,15 @@ class BloomFilter(object):
 	del cmd
 
     def _compress(self, data): # a compression funcion like lrzip in spirit: lz4>lz0>zlib>bz2>lzma
-	print "BLOOM: Compressing..."
+	sys.stderr.write("BLOOM: Compressing...\n")
 	try:
 		data = lz4.block.compress(data) # will fail if filter > 1GB
-		print "lz4 ok"
+		sys.stderr.write("lz4 ok\n")
 	except:
 		pass
 	try:
 		data = lzo.compress(data) # will fail if filter > 1GB
-		print "lzo ok"
+		sys.stderr.write("lzo ok\n")
 	except:
 		pass
 	#data = data.encode('zlib')
@@ -355,7 +353,7 @@ class BloomFilter(object):
 		fn = filename
 	    else:
 		fn = self.filename
-	    print "BLOOM: Saving filter to file:",fn
+	    sys.stderr.write( "BLOOM: Saving filter to file: %s\n" % fn)
 
 	    try:
 	    	if self.do_bkp:
@@ -366,9 +364,9 @@ class BloomFilter(object):
 	    data = self.bfilter.tobytes()
             self.hashid = blake2b512(data)
 	    self.header = "BLOOM:" + self.hashid.digest()[0:4]
-	    #print len(self.header)
+	    #sys.stderr.write( len(self.header)
 	    data = self._compress(self.header+data)
-	    print "BLOOM: Writing..."
+	    sys.stderr.write("BLOOM: Writing...\n")
 	    self._writefile(data,fn)
 	    lc=len(data)
 	    del data
@@ -376,7 +374,7 @@ class BloomFilter(object):
 	    d = (t1-t0)
 	    del t1 
             del t0
-	    print "BLOOM: Saved %d MB in %d sec, HASHID: %s" % (d,(lc//(1024**2)),self.hashid.hexdigest()[0:8])
+	    sys.stderr.write("BLOOM: Saved %d MB in %d sec, HASHID: %s\n" % (d,(lc//(1024**2)),self.hashid.hexdigest()[0:8]))
 	    self.saving = False
 	    del lc
 	    return d
@@ -384,14 +382,14 @@ class BloomFilter(object):
     def stat(self):
 	if self.bitcalc:
 		i = self.bfilter.buffer_info()
-		print i
+		sys.stderr.write(str(i))
 		self.bitset = (i[1]-i[4])
 		del i
-	print "BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount), "%3.8f" %  ((float(self.bitset)/self.bitcount)*100) + "%"
-	print "BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f" % (self.hits,self.queryes, (float(self.hits/self.queryes)*100)) + "%"
+	sys.stderr.write("BLOOM: Bits set: %d of %d" % (self.bitset,self.bitcount) + " %3.8f" % ((float(self.bitset)/self.bitcount)*100) + "%\n" )
+	sys.stderr.write("BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f" % (self.hits,self.queryes, (float(self.hits/self.queryes)*100)) + "%\n")
 
     def info(self):
-	print "BLOOM: filename: %si, do_hashes: %s, slices: %d, bits_per_slice: %d, fast: %s" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.fast)
+	sys.stderr.write("BLOOM: filename: %si, do_hashes: %s, slices: %d, bits_per_slice: %d, fast: %s\n" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.fast))
 	self.calc_hashid()
 	self.calc_entropy()
 	self.stat()	
@@ -401,19 +399,19 @@ if __name__ == "__main__":
 
     #bf.add('30000')
     #bf.add('1230213')
-    print bf.update('1')
+    print(bf.update('1'))
     for i in xrange(0,1000):
-	    print bf.update(str(i))
+	    print str(bf.update(str(i)))
             bf.stat()
-    print bf.add('1')
+    print(str(bf.add('1')))
 
-    print("Filter size {0} bytes").format(len(bf.bfilter))
-    #print bf.query('1') # True
-    #print bf.query('1230213') # True
-    #print bf.query('12') # False
+    print("Filter size {0} bytes".format(len(bf.bfilter)))
+    #sys.stderr.write( bf.query('1')) # True
+    #sys.stderr.write( bf.query('1230213')) # True
+    #sys.stderr.write( bf.query('12')) # False
 
     t0 = time.time()
     #bf.save('/tmp/test.bloom')
     t1 = time.time()
     t2 = t1 -t0
-    print t2
+    sys.stderr.write(str(t2))
