@@ -4,8 +4,8 @@ VERSION = '0.0.1'
 BASE_CVS_URL = 'http://github.com/daedalus/bloomfilter'
 
 setup(
-    name='bloomfilter',
-    packages=['bloomfilter', ],
+    name='fastBloomFilter',
+    packages=['fastBloomFilter', ],
     version=VERSION,
     author='Dario Clavijo',
     author_email='dclavijo@protonmail.com',
