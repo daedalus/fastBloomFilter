@@ -1,0 +1,5 @@
+bitarray
+lzo
+lz4
+lzma
+zlib
