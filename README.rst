@@ -12,9 +12,9 @@ This filter supports:
     Internal and external hashing of data.
     raw filter merging
 
-Installing Dependencies:
+Installing:
 
-    sudo pip install lz4 lzo bz2 zlib sha3 hashlib bitarray
+    sudo pip install fastbloomfilter
 
 External creating of the bloom filter file:
 
