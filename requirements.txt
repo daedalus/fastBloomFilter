@@ -1,6 +1,5 @@
 bitarray
-lzo
+python-lzo
 lz4
-lzma
-zlib
+pylzma
 sha3
