@@ -1,12 +1,12 @@
 #!/usr/bin/env python
 # based on https://gist.github.com/josephkern/2897618
 """A simple Bloom Filter implementation
-Calculating optimal filter size: 
+Calculating optimal filter size:
             Where:
             m is: self.bitcount (how many bits in self.filter)
             n is: the number of expected values added to self.filter
             k is: the number of hashes being produced
-            (1 - math.exp(-float(k * n) / m)) ** k 
+            (1 - math.exp(-float(k * n) / m)) ** k
 http://en.wikipedia.org/wiki/Bloom_filter
 """
 # Author Dario Clavijo 2017
@@ -50,7 +50,7 @@ def shannon_entropy(data, iterator=None):
     entropy = 0
 
     if iterator is None:
-	iterator = []	
+	iterator = []
 	for i in range(0,255):
 	    iterator+=chr(i)
 
@@ -58,7 +58,7 @@ def shannon_entropy(data, iterator=None):
         p_x = float(data.count(chr(x)))/len(data)
         if p_x > 0:
             entropy += - p_x*math.log(p_x, 2)
-	
+
     del p_x
     del iterator
 
@@ -81,9 +81,9 @@ class BloomFilter(object):
 
 	self.reflink = reflink # if supported by the underlying FS it will spare some copy cicles.
 	self.do_bkp = do_bkp
-	self.saving = False	
+	self.saving = False
 	self.bitcalc = False
-	self.merging = False		
+	self.merging = False	
 	self.fast = fast
 	self.header = 'BLOOM:\0\0\0\0'
 
@@ -93,7 +93,7 @@ class BloomFilter(object):
 	self.do_hashes = do_hashing			# use a provided hash o compute it.
 	self.hits = 0
 	self.queryes = 0
-	
+
 	self.filename = filename
 	if filename !=None and self.load() == True:
 		sys.stderr.write("BLOOM: Loaded OK\n")
@@ -106,7 +106,7 @@ class BloomFilter(object):
 
     def len(self):
     	return len(self.bfilter)
-	
+
     def calc_capacity(error_rate,capacity):
 	hashes = int(math.ceil(math.log(1.0 / error_rate, 2)))
 	bits_per_hash = int(math.ceil((capacity * abs(math.log(error_rate))) /(num_slices * (math.log(2) ** 2))))
@@ -153,11 +153,11 @@ class BloomFilter(object):
 		yield (digest % self.bitcount)
 	else:
         	for _ in range(0,self.slices):
-	        	# bitwise AND of the digest and all of the available bit positions 
+	        	# bitwise AND of the digest and all of the available bit positions
 	        	# in the filter
             		yield digest & (self.bitcount - 1)
         	    	# Shift bits in digest to the right, based on 256 (in sha256)
-	            	# divided by the number of hashes needed be produced. 
+	            	# divided by the number of hashes needed be produced.
         	    	# Rounding the result by using int().
             		# So: digest >>= (256 / 13) would shift 19 bits to the right.
             		digest >>= (self.slice_bits / self.slices)
@@ -175,16 +175,16 @@ class BloomFilter(object):
     def _add(self,__hash):
 	#global filter
         for digest in __hash:
-            # In-place bitwise OR of the filter, position is determined 
+            # In-place bitwise OR of the filter, position is determined
             # by the (digest / 8) digest is described above in self._hash()
-            # Bitwise OR is undertaken on the value at the location and 
-            # 2 to the power of digest modulo 8. Ex: 2 ** (30034 % 8) 
-            # to grantee the value is <= 128, the bytearray not being able 
+            # Bitwise OR is undertaken on the value at the location and
+            # 2 to the power of digest modulo 8. Ex: 2 ** (30034 % 8)
+            # to grantee the value is <= 128, the bytearray not being able
             # to store a value >= 256. Q: Why not use ((modulo 9) -1) then?
-            self.bfilter[digest] = True 
+            self.bfilter[digest] = True
 
-            # The purpose here is to spread out the hashes to create a unique 
-            # "fingersys.stderr.write(" with unique locations in the filter array, 
+            # The purpose here is to spread out the hashes to create a unique
+            # "fingersys.stderr.write(" with unique locations in the filter array,
             # rather than just a big long hash blob.
 	if self.fast:
 		self.bitset += 1
@@ -195,11 +195,11 @@ class BloomFilter(object):
         """Bitwise AND to query values in self.filter
         Expects:
             value: value to check filter against (assumed int())"""
-        # If all() hashes return True from a bitwise AND (the opposite 
-        # described above in self.add()) for each digest returned from 
+        # If all() hashes return True from a bitwise AND (the opposite
+        # described above in self.add()) for each digest returned from
         # self._hash return True, else False
 	__hash = self._hash(value)
-	return self._query(__hash)    
+	return self._query(__hash)   
 
     def _query(self,__hash):
 	#global bfilter
@@ -230,7 +230,7 @@ class BloomFilter(object):
 	del fp
 	del SIZE
 	return data
-   
+  
     def _decompress(self,data): # a decompression funcion like lrzip in spirit: lzma<bz2<zlib<lz0<lz4
 	try:
 		data = lzma.decompress(data)
@@ -281,15 +281,15 @@ class BloomFilter(object):
 			del data
                 self.bitcount = len(self.bfilter)
                 self.bitset = 0
-		#return True	
+		#return True
 
-	#del data	
+	#del data
 	del fn
 	t1 = time.time()
 	sys.stderr.write("BLOOM: Loaded: %d bytes, Inflated: %d bytes in: %d sec\n" % (ld,(self.bitcount/8),(t1-t0)))
 	sys.stderr.write("BLOOM: HASHID: %s %s\n" % (self.hashid.hexdigest()[:8],self.header[6:].encode('hex')))
 	del ld
-	del t1 
+	del t1
 	del t0
 	return True
 
@@ -344,7 +344,7 @@ class BloomFilter(object):
 	data = bz2.compress(data)
 	data = lzma.compress(data)
     	return data
-	
+
     def save(self,filename=None):
 	if not self.saving:
 	    self.saving = True
@@ -372,13 +372,13 @@ class BloomFilter(object):
 	    del data
 	    t1 = time.time()
 	    d = (t1-t0)
-	    del t1 
+	    del t1
             del t0
 	    sys.stderr.write("BLOOM: Saved %d MB in %d sec, HASHID: %s\n" % (d,(lc//(1024**2)),self.hashid.hexdigest()[0:8]))
 	    self.saving = False
 	    del lc
 	    return d
- 
+
     def stat(self):
 	if self.bitcalc:
 		i = self.bfilter.buffer_info()
@@ -392,7 +392,7 @@ class BloomFilter(object):
 	sys.stderr.write("BLOOM: filename: %si, do_hashes: %s, slices: %d, bits_per_slice: %d, fast: %s\n" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.fast))
 	self.calc_hashid()
 	self.calc_entropy()
-	self.stat()	
+	self.stat()
 
 if __name__ == "__main__":
     bf = BloomFilter(1024**3,slices=17,slice_bits=256,do_hashing=True)
