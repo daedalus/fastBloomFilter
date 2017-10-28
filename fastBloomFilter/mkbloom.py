@@ -10,5 +10,5 @@ except ValueError as verr:
 	exit(1)	
 
 if Gigs > 0:
-	bf = bloom.BloomFilter(array_size=Gigs*(1024**3),do_bkp=False,do_hashing=False, bitshuffle=False,fast=False)
+	bf = bloom.BloomFilter(array_size=Gigs*(1024**3),do_bkp=False,do_hashing=False,fast=False)
 	bf.save(filename)
