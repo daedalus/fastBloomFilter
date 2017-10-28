@@ -1,12 +1,14 @@
 import sys
 import bloom
 
-try:
-	array_size = int(sys.argv[2])
-except:
-	array_size = (1024**3)*1
-
-bf = bloom.BloomFilter(array_size=array_size,do_bkp=False,do_hashing=False, bitshuffle=False,fast=False)
 filename = sys.argv[1]
-bf.save(filename)
 
+try:
+	Gigs = int(sys.argv[2])
+except ValueError as verr:
+	print "Plase input the correct number of Gigabytes of RAM to be used."
+	exit(1)	
+
+if Gigs > 0:
+	bf = bloom.BloomFilter(array_size=Gigs*(1024**3),do_bkp=False,do_hashing=False, bitshuffle=False,fast=False)
+	bf.save(filename)
