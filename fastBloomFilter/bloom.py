@@ -197,7 +197,7 @@ class BloomFilter(object):
         # described above in self.add()) for each digest returned from
         # self._hash return True, else False
 	__hash = self._hash(value)
-	return self._query(__hash)   
+	return self._query(__hash)
 
     def _query(self,__hash):
 	#global bfilter
@@ -228,7 +228,7 @@ class BloomFilter(object):
 	del fp
 	del SIZE
 	return data
-  
+
     def _decompress(self,data): # a decompression funcion like lrzip in spirit: lzma<bz2<zlib<lz0<lz4
 	try:
 		data = lzma.decompress(data)
