@@ -3,7 +3,6 @@
 # GPlv3
 
 import bloom
-import fileinput
 import sys
 
 bf = bloom.BloomFilter()
