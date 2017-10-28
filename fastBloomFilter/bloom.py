@@ -109,7 +109,7 @@ class BloomFilter(object):
 	hashes = int(math.ceil(math.log(1.0 / error_rate, 2)))
 	bits_per_hash = int(math.ceil((capacity * abs(math.log(error_rate))) /(num_slices * (math.log(2) ** 2))))
 	bitcount = bits_per_hash * hashes
-	sys.stderr.write("Hashes: %d, bit_per_hash: %d bitcount: %d\n" % (self.hashes,self.bits_per_hash,self.bitcount))
+	sys.stderr.write("Hashes: %d, bit_per_hash: %d bitcount: %d\n" % (hashes,bits_per_hash,bitcount))
 
     def calc_entropy(self):
 	self.entropy = shannon_entropy(self.bfilter)
