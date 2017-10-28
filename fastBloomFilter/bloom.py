@@ -12,9 +12,7 @@ http://en.wikipedia.org/wiki/Bloom_filter
 # Author Dario Clavijo 2017
 # GPLv3
 
-import sha3
 import hashlib
-import mmap
 import math
 import time
 import zlib
