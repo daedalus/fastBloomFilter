@@ -119,7 +119,7 @@ class BloomFilter(object):
 	data = self.bfilter.tobytes()
 	self.hashid = blake2b512(data)
 	del data
-	sys.stderr.write("BLOOM: HASHID: %S\n" % self.hashid.hexdigest()[0:8])
+	sys.stderr.write("BLOOM: HASHID: %s\n" % self.hashid.hexdigest()[0:8])
 
     def _raw_merge(self,bfilter):
 	if self.merging == False:
