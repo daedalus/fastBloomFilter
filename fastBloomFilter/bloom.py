@@ -81,7 +81,7 @@ class BloomFilter(object):
 	self.do_bkp = do_bkp
 	self.saving = False
 	self.bitcalc = False
-	self.merging = False	
+	self.merging = False
 	self.fast = fast
 	self.header = 'BLOOM:\0\0\0\0'
 
