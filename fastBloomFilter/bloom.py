@@ -12,7 +12,9 @@ http://en.wikipedia.org/wiki/Bloom_filter
 # Author Dario Clavijo 2017
 # GPLv3
 
-import sha3
+import sys
+if sys.version_info < (3, 6):
+    import sha3
 import hashlib
 import mmap
 import math
@@ -24,15 +26,11 @@ import bz2
 import lzma
 import os
 import bitarray
-import sys
 
-#try:
-#    def blake2b512(s):
-#        h = hashlib.new('blake2b512')
-#        h.update(s)
-#        return h
-#except:
-#    pass
+def blake2b512(s):
+    h = hashlib.new('blake2b512')
+    h.update(s)
+    return h
 
 def sha3(s):
     h = hashlib.sha3_256()
@@ -96,7 +94,10 @@ class BloomFilter(object):
         self.do_hashes = do_hashing            # use a provided hash o compute it.
         self.hits = 0
         self.queryes = 0
-        self.hashfunc = sha3
+        try:
+            self.hashfunc = blake2b512
+        except:
+            self.hashfunc = sha3
     
         self.filename = filename
         if filename !=None and self.load() == True:
@@ -106,7 +107,7 @@ class BloomFilter(object):
             self.bfilter = bitarray.bitarray(array_size*8,endian='little')
             self.bitcount = array_size * 8          # Bits in the filter
 
-        sys.stderr.write("BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s\n" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp))
+        sys.stderr.write("BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s,func:%s\n" % (self.filename, self.do_hashes, self.slices, self.slice_bits,self.do_bkp,self.hashfunc))
 
     def len(self):
         return len(self.bfilter)
@@ -123,7 +124,7 @@ class BloomFilter(object):
 
     def calc_hashid(self):
         data = self.bfilter.tobytes()
-        self.hashid = blake2b512(data)
+        self.hashid = self.hashfunc(data)
         del data
         sys.stderr.write("BLOOM: HASHID: %S\n" % self.hashid.hexdigest()[0:8])
 
@@ -272,15 +273,15 @@ class BloomFilter(object):
             sys.stderr.write("HEADER: %s\n" % self.header.encode('hex'))
             if self.header[0:6] == 'BLOOM:':
                 self.bfilter = bitarray.bitarray(endian='little')
-                #self.hashid = blake2b512(data[10:])
+                #self.hashid = self.hashfunc(data[10:])
                 self.bfilter.frombytes(data[10:])
                 del data
-                self.hashid = blake2b512(self.bfilter.tobytes())
+                self.hashid = self.hashfunc(self.bfilter.tobytes())
             else:
                 sys.stderr.write("BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!\n")
                 #self.bfilter = bytearray()
                 self.bfilter = bitarray.bitarray(endian='little')
-                #self.hashid = blake2b512(data)
+                #self.hashid = self.hashfunc(data)
                 self.bfilter.frombytes(data)
                 del data
             self.bitcount = len(self.bfilter)
@@ -366,7 +367,7 @@ class BloomFilter(object):
                 pass
 
             data = self.bfilter.tobytes()
-            self.hashid = blake2b512(data)
+            self.hashid = self.hashfunc(data)
             self.header = "BLOOM:" + self.hashid.digest()[0:4]
             #sys.stderr.write( len(self.header)
             data = self._compress(self.header+data)
