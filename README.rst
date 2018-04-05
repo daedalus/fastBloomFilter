@@ -22,7 +22,8 @@ External creating of the bloom filter file:
 
 Importing:
 
-    bf = BloomFilter(filename='/tmp/filter.blf')
+    from fastBloomFilter import bloom
+    bf = bloom.BloomFilter(filename='/tmp/filter.blf')
 
 Adding data to it:
 
