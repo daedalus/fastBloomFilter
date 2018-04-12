@@ -26,6 +26,7 @@ import bz2
 import lzma
 import os
 import bitarray
+import struct
 
 def blake2b512(s):
     h = hashlib.new('blake2b512')
@@ -152,7 +153,7 @@ class BloomFilter(object):
         if self.do_hashes:
             digest = int(self.hashfunc(value).hexdigest(),16)
         else:
-            digest = int(value.encode('hex'),16)
+            digest = int(value.hex(),16)
 
         if self.fast:
             yield (digest % self.bitcount)
@@ -223,7 +224,7 @@ class BloomFilter(object):
         return r
 
     def _readfile(self,filename):
-        data = ''
+        data = []
         SIZE=1024*128
         fp = open(filename,'rb')
         recvbuf = fp.read(SIZE)
@@ -234,7 +235,7 @@ class BloomFilter(object):
         del recvbuf
         del fp
         del SIZE
-        return data
+        return bytes(data)
    
     def _decompress(self,data): # a decompression funcion like lrzip in spirit: lzma<bz2<zlib<lz0<lz4
         try:
@@ -270,8 +271,12 @@ class BloomFilter(object):
         if ld >0:
             data = self._decompress(data)
             self.header=data[0:10]
-            sys.stderr.write("HEADER: %s\n" % self.header.encode('hex'))
-            if self.header[0:6] == 'BLOOM:':
+            try:
+                sys.stderr.write("HEADER: %s\n" % self.header.encode('hex'))
+            except:
+                sys.stderr.write("HEADER: %s\n" % self.header.hex())
+
+            if self.header[0:6] == b'BLOOM:':
                 self.bfilter = bitarray.bitarray(endian='little')
                 #self.hashid = self.hashfunc(data[10:])
                 self.bfilter.frombytes(data[10:])
@@ -292,7 +297,10 @@ class BloomFilter(object):
         del fn
         t1 = time.time()
         sys.stderr.write("BLOOM: Loaded: %d bytes, Inflated: %d bytes in: %d sec\n" % (ld,(self.bitcount/8),(t1-t0)))
-        sys.stderr.write("BLOOM: HASHID: %s %s\n" % (self.hashid.hexdigest()[:8],self.header[6:].encode('hex')))
+        try:
+            sys.stderr.write("BLOOM: HASHID: %s %s\n" % (self.hashid.hexdigest()[:8],self.header[6:].encode('hex')))
+        except:
+            sys.stderr.write("BLOOM: HASHID: %s %s\n" % (self.hashid.hexdigest()[:8],self.header[6:].hex()))
         del ld
         del t1 
         del t0
@@ -300,14 +308,14 @@ class BloomFilter(object):
 
     def _dump(self):
         sys.stderr.write("BLOOM: Dumping filter contents...\n")
-        for i in xrange(0,len(self.bfilter)-1,64):
+        for i in range(0,len(self.bfilter)-1,64):
             sys.stderr.write(str(self.bfilter[i:i+64]).encode('hex'))
 
 
     def _writefile(self,data,filename):
         fp = open(filename,'wb')
         SIZE = 1024*128
-        for i in xrange(0,len(data)-1,SIZE):
+        for i in range(0,len(data)-1,SIZE):
             fp.write(data[i:i+SIZE])
         fp.close()
         del fp
@@ -368,7 +376,7 @@ class BloomFilter(object):
 
             data = self.bfilter.tobytes()
             self.hashid = self.hashfunc(data)
-            self.header = "BLOOM:" + self.hashid.digest()[0:4]
+            self.header = b'BLOOM:' + bytes(self.hashid.digest()[0:4])
             #sys.stderr.write( len(self.header)
             data = self._compress(self.header+data)
             sys.stderr.write("BLOOM: Writing...\n")
@@ -405,7 +413,7 @@ if __name__ == "__main__":
     #bf.add('30000')
     #bf.add('1230213')
     print(bf.update('1'))
-    for i in xrange(0,1000):
+    for i in range(0,1000):
         print(str(bf.update(str(i))))
     bf.stat()
     print(str(bf.add('1')))
