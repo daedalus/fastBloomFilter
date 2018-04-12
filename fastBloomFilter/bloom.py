@@ -190,7 +190,7 @@ class BloomFilter(object):
             self.bfilter[digest] = True
 
             # The purpose here is to spread out the hashes to create a unique
-            # "fingersys.stderr.write(" with unique locations in the filter array,
+            # hash with unique locations in the filter array,
             # rather than just a big long hash blob.
         if self.fast:
             self.bitset += 1
