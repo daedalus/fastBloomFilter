@@ -16,7 +16,6 @@ import sys
 if sys.version_info < (3, 6):
     import sha3
 import hashlib
-import mmap
 import math
 import time
 import zlib
@@ -26,7 +25,6 @@ import bz2
 import lzma
 import os
 import bitarray
-import struct
 
 def blake2b512(s):
     h = hashlib.new('blake2b512')
