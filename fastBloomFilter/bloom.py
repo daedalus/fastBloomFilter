@@ -25,6 +25,7 @@ import bz2
 import lzma
 import os
 import bitarray
+import binascii
 
 def blake2b512(s):
     h = hashlib.new('blake2b512')
@@ -151,7 +152,10 @@ class BloomFilter(object):
         if self.do_hashes:
             digest = int(self.hashfunc(value).hexdigest(),16)
         else:
-            digest = int(value.hex(),16)
+            try:
+                digest = int(value.hex(),16)
+            except:
+                digest= int(binascii.hexlify(value),16)
 
         if self.fast:
             yield (digest % self.bitcount)
