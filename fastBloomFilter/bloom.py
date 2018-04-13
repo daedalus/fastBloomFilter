@@ -289,7 +289,8 @@ class BloomFilter(object):
                 del data
             self.bitcount = len(self.bfilter)
             self.bitset = 0
-        #return True       
+        else:
+            return False
 
         #del data       
         del fn
