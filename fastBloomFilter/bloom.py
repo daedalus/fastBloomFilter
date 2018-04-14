@@ -332,7 +332,7 @@ class BloomFilter(object):
                 cmd = 'mv %s %s.bkp' % (filename,filename)
             else:
                 if reflink:
-                    cmd = 'cp --reflink %s %s.bkp' % (filename,filename)
+                    cmd = 'cp --reflink=auto %s %s.bkp' % (filename,filename)
                 else:
                     cmd = 'cp %s %s.bkp' % (filename,filename)
             os.system(cmd)
