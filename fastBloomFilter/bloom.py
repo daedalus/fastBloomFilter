@@ -27,6 +27,8 @@ import os
 import bitarray
 import binascii
 
+is_python3 = (sys.version_info.major == 3)
+
 def blake2b512(s):
     h = hashlib.new('blake2b512')
     h.update(s)
@@ -232,33 +234,47 @@ class BloomFilter(object):
         recvbuf = fp.read(SIZE)
         while len(recvbuf) > 0:
             data += recvbuf
-            recvbuf = fp.read(1024*128)
+            recvbuf = fp.read(SIZE)
         fp.close()
         del recvbuf
         del fp
         del SIZE
-        return bytes(data)
+        if is_python3:
+                return bytes(data)
+        else:
+                return bytes("".join(data))
   
     def _decompress(self,data): # a decompression funcion like lrzip in spirit: lzma<bz2<zlib<lz0<lz4
         try:
-                data = lzma.decompress(data)
+            data = lzma.decompress(data)
+            sys.stderr.write("lzma ok\n")
         except:
-                pass
-        data = bz2.decompress(data)
-        data = zlib.decompress(data)
+            sys.stderr.write("lzma err\n")
+            pass
         try:
-                data = data.decode('zlib')
+            data = bz2.decompress(data)
+            sys.stderr.write("bz2 ok\n")
         except:
-                pass
+            sys.stderr.write("bz2 err\n")
+            pass
         try:
-                data = lzo.decompress(data)
+            data = zlib.decompress(data)
+            sys.stderr.write("zlib ok\n")
         except:
-                pass
+            sys.stderr.write("zlib err\n")
+            pass
         try:
-                data = lz4.block.decompress(data)
+            data = lzo.decompress(data)
+            sys.stderr.write("lzo ok\n")
         except:
-                pass
-
+            sys.stderr.write("lzo err\n")
+            pass
+        try:
+            data = lz4.block.decompress(data)
+            sys.stderr.write("lz4 ok\n")
+        except:
+            sys.stderr.write("lz4 err\n")
+            pass
         return data
 
     def load(self,filename=None):
@@ -352,14 +368,23 @@ class BloomFilter(object):
             sys.stderr.write("lzo ok\n")
         except:
             pass
-        #data = data.encode('zlib')
-        #data = zlib.compress(data,1)
-        #data = zlib.compress(data,9)
-        #data = bz2.compress(data,9)
-        data = zlib.compress(data)
-        data = bz2.compress(data)
-        data = lzma.compress(data)
+        try:
+            data = zlib.compress(data)
+            sys.stderr.write("zlib ok\n")
+        except:
+            pass
+        try:
+            data = bz2.compress(data)
+            sys.stderr.write("bz2 ok\n")
+        except:
+            pass
+        try:
+            data = lzma.compress(data)
+            sys.stderr.write("lzma ok\n")
+        except:
+            pass
         return data
+
    
     def save(self,filename=None):
         if not self.saving:
