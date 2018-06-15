@@ -23,5 +23,5 @@ setup(
         "License :: OSI Approved :: GNU General Public License (GPL)",
     ],
     description = ("A fast and simple probabilistic bloom filter that supports compression"),
-    long_description=file('README.rst').read(),
+    long_description=open('README.rst','r+').read(),
 )
