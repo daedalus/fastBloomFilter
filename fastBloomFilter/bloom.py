@@ -76,7 +76,7 @@ def display(digest):
 class BloomFilter(object):
     """A simple bloom filter for lots of int()"""
 
-    def __init__(self, array_size=((1024**3)*1), slices=10,slice_bits=256,do_hashing=True,filename=None,do_bkp=True,reflink=False,fast=False):
+    def __init__(self, array_size=((1024**3)*1), slices=10,slice_bits=256,do_hashing=True,filename=None,do_bkp=True,reflink=False,fast=False,data_is_hex=False):
         """Initializes a BloomFilter() object:
             Expects:
                 array_size (in bytes): 4 * 1024 for a 4KB filter
@@ -88,6 +88,7 @@ class BloomFilter(object):
         self.bitcalc = False
         self.merging = False       
         self.fast = fast
+        self.data_is_hex = data_is_hex # ignored when do_hashes = True
         self.header = 'BLOOM:\0\0\0\0'
 
         self.slices = slices                        # The number of hashes to use
@@ -154,11 +155,13 @@ class BloomFilter(object):
         if self.do_hashes:
             digest = int(self.hashfunc(value).hexdigest(),16)
         else:
-            try:
-                digest = int(value.hex(),16)
-            except:
-                digest= int(binascii.hexlify(value),16)
-
+            if self.data_is_hex:
+                digest = int(value,16)
+            else:
+                try:
+                    digest = int(value.hex(),16)
+                except:
+                    digest= int(binascii.hexlify(value),16)
         if self.fast:
             yield (digest % self.bitcount)
         else:
