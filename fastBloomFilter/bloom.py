@@ -115,9 +115,9 @@ class BloomFilter(object):
     def len(self):
         return len(self.bfilter)
    
-    def calc_capacity(error_rate,capacity):
+    def calc_capacity(self,error_rate,capacity):
         hashes = int(math.ceil(math.log(1.0 / error_rate, 2)))
-        bits_per_hash = int(math.ceil((capacity * abs(math.log(error_rate))) /(num_slices * (math.log(2) ** 2))))
+        bits_per_hash = int(math.ceil((capacity * abs(math.log(error_rate))) /(self.slices * (math.log(2) ** 2))))
         bitcount = bits_per_hash * hashes
         sys.stderr.write("Hashes: %d, bit_per_hash: %d bitcount: %d\n" % (self.hashes,self.bits_per_hash,bitcount))
 
