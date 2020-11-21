@@ -1,5 +1,5 @@
 ![lint_python](https://github.com/daedalus/fastBloomFilter/workflows/lint_python/badge.svg)
-[![GitHub issues](https://img.shields.io/github/issues/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilterissues)
+[![GitHub issues](https://img.shields.io/github/issues/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/issues)
 [![GitHub forks](https://img.shields.io/github/forks/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/network)
 [![GitHub stars](https://img.shields.io/github/stars/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/stargazers)
 
