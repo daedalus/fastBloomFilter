@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.0.4'
+VERSION = '0.0.8'
 BASE_CVS_URL = 'http://github.com/daedalus/bloomfilter'
 
 setup(
@@ -23,5 +23,6 @@ setup(
         "License :: OSI Approved :: GNU General Public License (GPL)",
     ],
     description = ("A fast and simple probabilistic bloom filter that supports compression"),
-    long_description=open('README.rst','r+').read(),
+    long_description=open('README.md','r+').read(),
+    long_description_content_type="text/markdown",
 )
