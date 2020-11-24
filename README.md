@@ -1,7 +1,10 @@
+[![Libraries.io SourceRank](https://badges.weareopensource.me/librariesio/sourcerank/pypi/fastBloomFilter)](https://libraries.io/pypi/fastBloomFilter)
 ![lint_python](https://github.com/daedalus/fastBloomFilter/workflows/lint_python/badge.svg)
+![CodeQL](https://github.com/daedalus/fastBloomFilter/workflows/CodeQL/badge.svg)
 [![GitHub issues](https://img.shields.io/github/issues/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/issues)
 [![GitHub forks](https://img.shields.io/github/forks/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/network)
 [![GitHub stars](https://img.shields.io/github/stars/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/stargazers)
+[![GitHub license](https://img.shields.io/github/license/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter)
 
 # Simple and fast pythonic bloomfilter
 
