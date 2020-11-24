@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.0.8'
+VERSION = '0.0.9'
 BASE_CVS_URL = 'http://github.com/daedalus/bloomfilter'
 
 setup(
