@@ -4,6 +4,13 @@ jobs:
   lint_python:
     runs-on: ubuntu-latest
     steps:
+    - name: Cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v1
     - name: Lint with flake8
