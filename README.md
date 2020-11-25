@@ -1,5 +1,7 @@
 [![Libraries.io SourceRank](https://badges.weareopensource.me/librariesio/sourcerank/pypi/fastBloomFilter)](https://libraries.io/pypi/fastBloomFilter)
+![pypi downloads](https://img.shields.io/pypi/dm/fastbloomfilter?label=pypi%20downloads)
 ![lint_python](https://github.com/daedalus/fastBloomFilter/workflows/lint_python/badge.svg)
+![Upload Python Package](https://github.com/daedalus/fastBloomFilter/workflows/Upload%20Python%20Package/badge.svg)
 ![CodeQL](https://github.com/daedalus/fastBloomFilter/workflows/CodeQL/badge.svg)
 [![GitHub issues](https://img.shields.io/github/issues/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/issues)
 [![GitHub forks](https://img.shields.io/github/forks/daedalus/fastBloomFilter.svg)](https://github.com/daedalus/fastBloomFilter/network)
