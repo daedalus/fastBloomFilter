@@ -54,10 +54,10 @@ bf.add('1')
 ### Adding data and at the same time querying it: ###
 
 ```
-print bf.update('1') # True
-print bf.update('1') # True
-print bf.update('2') # False
-print bf.update('2') # True
+print(bf.update('1')) # True
+print(bf.update('1')) # True
+print(bf.update('2')) # False
+print(bf.update('2')) # True
 ```
 
 ### Printing stats: ###
@@ -75,9 +75,9 @@ bf.info()
 ### Querying data: ###
 
 ```
-print bf.query('1') # True
-print bf.query('1230213') # True
-print bf.query('12') # False
+print(bf.query('1')) # True
+print(bf.query('1230213')) # True
+print(bf.query('12')) # False
 ```   
 
 ```
