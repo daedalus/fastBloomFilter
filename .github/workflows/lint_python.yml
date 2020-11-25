@@ -10,7 +10,7 @@ jobs:
         path: ~/.cache/pip
         key: ${{ runner.os }}-${{ matrix.python-version }}-pip-${{ hashFiles('**/requirements.txt') }}
         restore-keys: |
-          ${{ runner.os }}-pip-
+          ${{ runner.os }}-${{ matrix.python-version }}-pip-
     - uses: actions/checkout@v2
     - uses: actions/setup-python@v1
     - name: Lint with flake8
