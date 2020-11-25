@@ -28,12 +28,20 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        language: [ python ]
+        language: ${{ matrix.language }}
         # CodeQL supports [ $supported-codeql-languages ]
         # Learn more:
         # https://docs.github.com/en/free-pro-team@latest/github/finding-security-vulnerabilities-and-errors-in-your-code/configuring-code-scanning#changing-the-languages-that-are-analyzed
 
     steps:
+    - name: Pip Cache
+      uses: actions/cache@v2
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+          
     - name: Checkout repository
       uses: actions/checkout@v2
 
