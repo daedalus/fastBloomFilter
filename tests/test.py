@@ -1,14 +1,17 @@
-from fastBloomFilter import Bloom
+from fastBloomFilter.bloom import BloomFilter
 
-bf = Bloom.BloomFilter(filename='/tmp/filter.blf')
+bf = BloomFilter(filename='./filter.blf')
+bf.add('30000'.encode("utf-8"))
+bf.add('1230213'.encode("utf-8"))
+bf.add('1'.encode("utf-8"))
 
-bf.add('30000') 
-bf.add('1230213') 
-bf.add('1')
+print(bf.update('1'.encode("utf-8")))  # True
+print(bf.update('1'.encode("utf-8")))  # True
+print(bf.update('2'.encode("utf-8")))  # False
+print(bf.update('2'.encode("utf-8")))  # True
+print(bf.query('1'.encode("utf-8")))  # True
+print(bf.query('1230213'.encode("utf-8")))  # True
+print(bf.query('12'.encode("utf-8")))  # False
 
-print(bf.update('1'))
-print(bf.update('2')) 
-print(bf.query('1'))
-
-bf.stat()
+bf.stats()
 bf.info()

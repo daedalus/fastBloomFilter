@@ -1,0 +1,12 @@
+
+[docs]
+sphinx>=1.6.0
+sphinx_bootstrap_theme
+
+[flake8]
+flake8
+
+[tests]
+pytest!=3.3.0
+psutil
+pytest-cov

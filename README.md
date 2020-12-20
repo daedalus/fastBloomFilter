@@ -48,24 +48,24 @@ bf = bloom.BloomFilter(filename='/tmp/filter.blf')
 ### Adding data to it: ###
 
 ```
-bf.add('30000')
-bf.add('1230213')
-bf.add('1')
+bf.add('30000'.encode("utf-8"))
+bf.add('1230213'.encode("utf-8"))
+bf.add('1'.encode("utf-8"))
 ```
     
 ### Adding data and at the same time querying it: ###
 
 ```
-print(bf.update('1')) # True
-print(bf.update('1')) # True
-print(bf.update('2')) # False
-print(bf.update('2')) # True
+print(bf.update('1'.encode("utf-8"))) # True
+print(bf.update('1'.encode("utf-8"))) # True
+print(bf.update('2'.encode("utf-8"))) # False
+print(bf.update('2'.encode("utf-8"))) # True
 ```
 
 ### Printing stats: ###
 
 ```
-bf.stat()
+bf.stats()
 ```
    
 Or:
@@ -77,11 +77,14 @@ bf.info()
 ### Querying data: ###
 
 ```
-print(bf.query('1')) # True
-print(bf.query('1230213')) # True
-print(bf.query('12')) # False
-```   
-
+print(bf.query('1'.encode("utf-8"))) # True
+print(bf.query('1230213'.encode("utf-8"))) # True
+print(bf.query('12'.encode("utf-8"))) # False
+```  
+### Pip Install Error: ###
+```
+If install error, you can install lzo 
+```
 ```
 Contributons:
     Are welcome!
