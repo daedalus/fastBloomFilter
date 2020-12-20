@@ -107,7 +107,6 @@ class BloomFilter(object):
         self.do_hashes = do_hashing  # use a provided hash o compute it.
         self.hits = 0
         self.queries = 0
-        self.size = 1024 * 128
         try:
             self.hash_func = blake2b512
         except:
@@ -240,15 +239,16 @@ class BloomFilter(object):
 
     def _read_file(self, filename):
         data = []
+        size = 1024 * 128
         fp = open(filename, 'rb')
-        recvbuf = fp.read(self.size)
+        recvbuf = fp.read(size)
         while len(recvbuf) > 0:
             data += recvbuf
-            recvbuf = fp.read(self.size)
+            recvbuf = fp.read(size)
         fp.close()
         del recvbuf
         del fp
-        del self.size
+        del size
         if is_python3:
             return bytes(data)
         else:
@@ -344,12 +344,12 @@ class BloomFilter(object):
     @staticmethod
     def _write_file(data, filename):
         fp = open(filename, 'wb')
-
-        for i in range(0, len(data) - 1, self.size):
-            fp.write(data[i:i + self.size])
+        size = 1024 * 128
+        for i in range(0, len(data) - 1, size):
+            fp.write(data[i:i + size])
         fp.close()
         del fp
-        del self.size
+        del size
 
     @staticmethod
     def _bkp(filename, mv=False, re_flink=False):
