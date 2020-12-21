@@ -34,7 +34,7 @@ From wikipedia: "A Bloom filter is a space-efficient probabilistic data structur
 sudo pip install fastbloomfilter
 ```
 
-### External creating of the bloom filter file: ###
+### External creation of the bloom filter file: ###
 
 ```
 python mkbloom.py /tmp/filter.blf
