@@ -80,8 +80,6 @@ def display(digest):
 
             
 class BloomFilter(object):
-    """A simple bloom filter for lots of int()"""
-
     def __init__(self, array_size = ((1024 ** 3) * 1), slices = 10, slice_bits = 256, do_hashing = True, 
                  filename = None, do_bkp = True, reflink = False, fast = False, data_is_hex = False):
         """Initializes a BloomFilter() object:
