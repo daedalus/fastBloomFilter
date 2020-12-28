@@ -7,10 +7,9 @@ import sys
 
 bf = bloom.BloomFilter()
 
-fp = open(sys.argv[1],'r')
+fp = open(sys.argv[1], "r")
 for line in fp:
-	bf.add(line.rstrip())
+    bf.add(line.rstrip())
 fp.close()
 
 bf.save(sys.argv[2])
-
