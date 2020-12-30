@@ -126,6 +126,7 @@ class BloomFilter(object):
         else:
             # self.bfilter = bytearray(array_size)    # The filter itself
             self.bfilter = bitarray.bitarray(array_size * 8, endian="little")
+            self.bfilter.setall(0)
             self.bitcount = array_size * 8  # Bits in the filter
 
         sys.stderr.write(
