@@ -44,6 +44,13 @@ python mkbloom.py /tmp/filter.blf
 
 ```
 from fastBloomFilter import bloom
+bf = bloom.BloomFilter(array_size=1024**3)
+```
+
+Or
+
+```
+from fastBloomFilter import bloom
 bf = bloom.BloomFilter(filename='/tmp/filter.blf')
 ```
 
@@ -78,7 +85,7 @@ print(bf.query('12')) # False
 ### Querying data and at the same time adding it: ###
 
 ```
-print(bf.update('1')) # True
+print(bf.update('1')) # False
 print(bf.update('1')) # True
 print(bf.update('2')) # False
 print(bf.update('2')) # True
