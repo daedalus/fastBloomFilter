@@ -95,5 +95,5 @@ Contributons:
               They should not include any obfuscated code.
               They should be in small PRs for faster reviewing process.
               They should include a small testcase.
-              Any contribution no hornoring this criteria will be rejected until it does.
+              Any contribution not hornoring this criteria will be rejected until it does.
 ```
