@@ -43,55 +43,64 @@ python mkbloom.py /tmp/filter.blf
 ### Importing: ###
 
 ```
-from fastBloomFilter import bloom
-bf = bloom.BloomFilter(array_size=1024**3)
+>>> from fastBloomFilter import bloom
+>>> bf = bloom.BloomFilter(array_size=1024**3)
 ```
 
 Or
 
 ```
-from fastBloomFilter import bloom
-bf = bloom.BloomFilter(filename='/tmp/filter.blf')
+>>> from fastBloomFilter import bloom
+>>> bf = bloom.BloomFilter(filename='/tmp/filter.blf')
 ```
 
 ### Adding data to it: ###
 
 ```
-bf.add('30000')
-bf.add('1230213')
-bf.add('1')
+>>> bf.add('30000')
+>>> bf.add('1230213')
+>>> bf.add('1')
 ```
 
 ### Printing stats: ###
 
 ```
-bf.stat()
+>>> bf.stat()
 ```
    
 Or:
 
 ```
-bf.info()
+>>> bf.info()
 ```
 
 ### Querying data: ###
 
 ```
-print(bf.query('1')) # True
-print(bf.query('1230213')) # True
-print(bf.query('12')) # False
+>>> print(bf.query('1'))
+True
+>>> print(bf.query('1230213'))
+True
+>>> print(bf.query('12'))
+False
 ```   
 
 ### Querying data and at the same time adding it: ###
 
 ```
-print(bf.update('1')) # False # False means the object wasn't existing and was added.
-print(bf.update('1')) # True  # True means the object existed and nothing new was added.
-print(bf.update('2')) # False
-print(bf.update('2')) # True
+>>> print(bf.update('1'))
+False 
+# False means the object wasn't existing and was added.
+>>> print(bf.update('1')) 
+True  
+# True means the object existed and nothing new was added.
+>>> print(bf.update('2'))
+False
+>>> print(bf.update('2'))
+True
 ```
 
-
+### Cotributing ###
 ```
 Contributons:
     Are welcome!
