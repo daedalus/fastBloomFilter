@@ -94,5 +94,5 @@ Contributons:
               They should not change the API.
               They should be in small PRs for faster reviewing process.
               They should include a small testcase.
-              Any contribution no hornoring the criterial will be rejected until it does.
+              Any contribution no hornoring this criteria will be rejected until it does.
 ```
