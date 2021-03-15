@@ -100,7 +100,7 @@ False
 True
 ```
 
-### Cotributing ###
+### Contributing ###
 ```
 Contributons:
     Are welcome!
