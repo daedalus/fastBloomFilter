@@ -88,4 +88,8 @@ print(bf.update('2')) # True
 ```
 Contributons:
     Are welcome!
+    Criteria: They should not include hidden folders or files of any ide environment.
+              They should not delete big portions of the project.
+              They should not include files that does not have anything to do with the project.
+              They should be in small PRs for faster reviewing process.
 ```
