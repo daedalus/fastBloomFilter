@@ -476,10 +476,10 @@ class BloomFilter(object):
 
     def stat(self):
         if self.bitcalc:
-            #i = self.bfilter.buffer_info()
-            #sys.stderr.write(str(i))
-            #self.bitset = i[1] - i[4]
-            #del i
+            # i = self.bfilter.buffer_info()
+            # sys.stderr.write(str(i))
+            # self.bitset = i[1] - i[4]
+            # del i
             sys.stderr.write(
                 "BLOOM: Bits set: %d of %d" % (self.bitset, self.bitcount)
                 + " %3.8f" % ((float(self.bitset) / self.bitcount) * 100)
@@ -490,10 +490,9 @@ class BloomFilter(object):
                 % (self.hits, self.queryes, (float(self.hits / self.queryes) * 100))
                 + "%\n"
             )
-        bytes_ = ((self.bitcount - self.bitset)/8.0)
-        Mfree = bytes_ / (1024**2)
+        bytes_ = (self.bitcount - self.bitset) / 8.0
+        Mfree = bytes_ / (1024 ** 2)
         sys.stderr.write("BLOOM: Free: %.2 Megs\n" % Mfree)
- 
 
     def info(self):
         sys.stderr.write(
