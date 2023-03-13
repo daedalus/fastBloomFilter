@@ -16,11 +16,7 @@ From wikipedia: "A Bloom filter is a space-efficient probabilistic data structur
 ### This filter supports: ###
 
 ```
-- Saving, reloading, compressed bloomfilter file lrzip like: 
-        for compression: lz4>lzo>zlib>bz2>lzma
-        for decompression: lzma>bz2>zlib>lzo>lz4
-         (This functionality might be deprecated, is better to use pickle for the bloom filter
-        than to manage loading and saving by ourselves.)
+- Saving, reloading with pickle. 
 - Stats
 - Entropy analysis
 - Internal and external hashing of data.
