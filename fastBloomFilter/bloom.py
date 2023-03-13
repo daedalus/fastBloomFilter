@@ -260,7 +260,7 @@ class BloomFilter(object):
         return ret
 
     def update(self, value):
-        __hash = list(self._hash(value))
+        __hash = [*(self._hash(value))]
         r = self._query(__hash)
         if r == False:
             self._add(__hash)
