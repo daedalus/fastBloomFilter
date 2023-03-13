@@ -258,7 +258,7 @@ class BloomFilter(object):
             del __hash
             return r
  
-    def load(self,filename):
+    def load(self, filename):
         BF = decompress_pickle(filename)      
         self.filename = filename
         self.do_hashes = BF.do_hashes 
@@ -271,12 +271,17 @@ class BloomFilter(object):
         self.bitset = BF.bitset
         return True
 
-    def save(self,filename):
-        self.saving = True
-        self.filename = filename
-        compress_pickle(filename, self)     
-        self.saving = False
-        return True
+    def save(self, filename = None):
+        if filename is None and self.filename is None:
+            sys.stderr.write("A Filename must be provided\n")
+            return False
+        else:
+            self.saving = True
+            if filename is not None:
+                self.filename = filename
+            compress_pickle(self.filename, self)     
+            self.saving = False
+            return True
 
     def stat(self):
         if self.bitcalc:
