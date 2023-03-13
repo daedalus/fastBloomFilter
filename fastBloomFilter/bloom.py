@@ -19,14 +19,10 @@ if sys.version_info < (3, 6):
 import hashlib
 import math
 import time
-import zlib
-import lz4
-import lzo
-import bz2
-import lzma
 import os
 import bitarray
 import binascii
+from lib.pickling import *
 
 is_python3 = sys.version_info.major == 3
 
@@ -267,212 +263,24 @@ class BloomFilter(object):
         del __hash
         return r
 
-    def _readfile(self, filename):
-        data = []
-        SIZE = 1024 * 128
-        fp = open(filename, "rb")
-        recvbuf = fp.read(SIZE)
-        while len(recvbuf) > 0:
-            data += recvbuf
-            recvbuf = fp.read(SIZE)
-        fp.close()
-        del recvbuf
-        del fp
-        del SIZE
-        if is_python3:
-            return bytes(data)
-        else:
-            return bytes("".join(data))
-
-    def _decompress(
-        self, data
-    ):  # a decompression funcion like lrzip in spirit: lzma<bz2<zlib<lz0<lz4
-        try:
-            data = lzma.decompress(data)
-            sys.stderr.write("lzma ok\n")
-        except:
-            sys.stderr.write("lzma err\n")
-            pass
-        try:
-            data = bz2.decompress(data)
-            sys.stderr.write("bz2 ok\n")
-        except:
-            sys.stderr.write("bz2 err\n")
-            pass
-        try:
-            data = zlib.decompress(data)
-            sys.stderr.write("zlib ok\n")
-        except:
-            sys.stderr.write("zlib err\n")
-            pass
-        try:
-            data = lzo.decompress(data)
-            sys.stderr.write("lzo ok\n")
-        except:
-            sys.stderr.write("lzo err\n")
-            pass
-        try:
-            data = lz4.block.decompress(data)
-            sys.stderr.write("lz4 ok\n")
-        except:
-            sys.stderr.write("lz4 err\n")
-            pass
-        return data
-
-    def load(self, filename=None):
-        t0 = time.time()
-        if filename != None:
-            fn = filename
-        else:
-            fn = self.filename
-        sys.stderr.write("BLOOM: loading filter from file: %s\n" % fn)
-        data = self._readfile(fn)
-        ld = len(data)
-        if ld > 0:
-            data = self._decompress(data)
-            self.header = data[0:10]
-            try:
-                sys.stderr.write("HEADER: %s\n" % self.header.encode("hex"))
-            except:
-                sys.stderr.write("HEADER: %s\n" % self.header.hex())
-
-            if self.header[0:6] == b"BLOOM:":
-                self.bfilter = bitarray.bitarray(endian="little")
-                # self.hashid = self.hashfunc(data[10:])
-                self.bfilter.frombytes(data[10:])
-                del data
-                self.hashid = self.hashfunc(self.bfilter.tobytes())
-            else:
-                sys.stderr.write("BLOOM: HEADER ERROR, FILTER IS NOT REALIABLE!!!\n")
-                # self.bfilter = bytearray()
-                self.bfilter = bitarray.bitarray(endian="little")
-                # self.hashid = self.hashfunc(data)
-                self.bfilter.frombytes(data)
-                del data
-            self.bitcount = len(self.bfilter)
-            self.bitset = 0
-        else:
-            return False
-
-        # del data
-        del fn
-        t1 = time.time()
-        sys.stderr.write(
-            "BLOOM: Loaded: %d bytes, Inflated: %d bytes in: %d sec\n"
-            % (ld, (self.bitcount / 8), (t1 - t0))
-        )
-        try:
-            sys.stderr.write(
-                "BLOOM: HASHID: %s %s\n"
-                % (self.hashid.hexdigest()[:8], self.header[6:].encode("hex"))
-            )
-        except:
-            sys.stderr.write(
-                "BLOOM: HASHID: %s %s\n"
-                % (self.hashid.hexdigest()[:8], self.header[6:].hex())
-            )
-        del ld
-        del t1
-        del t0
+ 
+    def load(self,filename):
+        BF = decompress_pickle(filename)      
+        self.filename = filename
+        self.do_hashes = BF.do_hashes 
+        self.slices = BF.slices
+        self.slice_bits = BF.slice_bits
+        self.hashfunc = BF.hashfunc
+        self.bfilter = BF.bfilter
+        self.fast = BF.fast
+        self.bitcount = BF.bitcount
+        self.bitset = BF.bitset
         return True
 
-    def _dump(self):
-        sys.stderr.write("BLOOM: Dumping filter contents...\n")
-        for i in range(0, len(self.bfilter) - 1, 64):
-            sys.stderr.write(str(self.bfilter[i : i + 64]).encode("hex"))
-
-    def _writefile(self, data, filename):
-        fp = open(filename, "wb")
-        SIZE = 1024 * 128
-        for i in range(0, len(data) - 1, SIZE):
-            fp.write(data[i : i + SIZE])
-        fp.close()
-        del fp
-        del SIZE
-
-    def _bkp(self, filename, mv=False, reflink=False):
-        f1 = os.path.getsize(filename)
-        f2 = os.path.getsize("%s.bkp" % filename)
-        if f1 > f2:
-            if mv:
-                cmd = "mv %s %s.bkp" % (filename, filename)
-            else:
-                if reflink:
-                    cmd = "cp --reflink=auto %s %s.bkp" % (filename, filename)
-                else:
-                    cmd = "cp %s %s.bkp" % (filename, filename)
-            os.system(cmd)
-        del f2
-        del f1
-        del cmd
-
-    def _compress(
-        self, data
-    ):  # a compression funcion like lrzip in spirit: lz4>lz0>zlib>bz2>lzma
-        sys.stderr.write("BLOOM: Compressing...\n")
-        try:
-            data = lz4.block.compress(data)  # will fail if filter > 1GB
-            sys.stderr.write("lz4 ok\n")
-        except:
-            pass
-        try:
-            data = lzo.compress(data)  # will fail if filter > 1GB
-            sys.stderr.write("lzo ok\n")
-        except:
-            pass
-        try:
-            data = zlib.compress(data)
-            sys.stderr.write("zlib ok\n")
-        except:
-            pass
-        try:
-            data = bz2.compress(data)
-            sys.stderr.write("bz2 ok\n")
-        except:
-            pass
-        try:
-            data = lzma.compress(data)
-            sys.stderr.write("lzma ok\n")
-        except:
-            pass
-        return data
-
-    def save(self, filename=None):
-        if not self.saving:
-            self.saving = True
-            t0 = time.time()
-            if filename != None:
-                fn = filename
-            else:
-                fn = self.filename
-            sys.stderr.write("BLOOM: Saving filter to file: %s\n" % fn)
-
-            try:
-                if self.do_bkp:
-                    self._bkp(fn)
-            except:
-                pass
-
-            data = self.bfilter.tobytes()
-            self.hashid = self.hashfunc(data)
-            self.header = b"BLOOM:" + bytes(self.hashid.digest()[0:4])
-            # sys.stderr.write( len(self.header)
-            data = self._compress(self.header + data)
-            sys.stderr.write("BLOOM: Writing...\n")
-            self._writefile(data, fn)
-            lc = len(data)
-            del data
-            t1 = time.time()
-            d = t1 - t0
-            del t1
-            del t0
-            sys.stderr.write(
-                "BLOOM: Saved %d MB in %d sec, HASHID: %s\n"
-                % (d, (lc // (1024 ** 2)), self.hashid.hexdigest()[0:8])
-            )
-            self.saving = False
-            del lc
-            return d
+    def save(self,filename):
+        self.filename = filename
+        compress_pickle(filename, self)     
+        return True
 
     def stat(self):
         if self.bitcalc:
@@ -492,7 +300,7 @@ class BloomFilter(object):
             )
         bytes_ = (self.bitcount - self.bitset) / 8.0
         Mfree = bytes_ / (1024 ** 2)
-        sys.stderr.write("BLOOM: Free: %.2 Megs\n" % Mfree)
+        sys.stderr.write("BLOOM: Free: %d Megs\n" % Mfree)
 
     def info(self):
         sys.stderr.write(
