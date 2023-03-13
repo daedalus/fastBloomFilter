@@ -84,8 +84,6 @@ class BloomFilter(object):
         slice_bits=256,
         do_hashing=True,
         filename=None,
-        do_bkp=True,
-        reflink=False,
         fast=False,
         data_is_hex=False,
     ):
@@ -94,10 +92,6 @@ class BloomFilter(object):
             array_size (in bytes): 4 * 1024 for a 4KB filter
             hashes (int): for the number of hashes to perform"""
 
-        self.reflink = (
-            reflink  # if supported by the underlying FS it will spare some copy cicles.
-        )
-        self.do_bkp = do_bkp
         self.saving = False
         self.bitcalc = False
         self.merging = False
@@ -126,14 +120,13 @@ class BloomFilter(object):
             self.bitcount = array_size * 8  # Bits in the filter
 
         sys.stderr.write(
-            "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, do_bkp: %s,func:%s\n"
+            "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, func:%s\n"
             % (
                 self.filename,
                 self.do_hashes,
                 self.slices,
                 self.slice_bits,
-                self.do_bkp,
-                self.hashfunc,
+                str(self.hashfunc).split(" ")[1],
             )
         )
 
@@ -186,7 +179,7 @@ class BloomFilter(object):
         # Build an int() around the sha256 digest of int() -> value
         # value = value.__str__() # Comment out line if you're filtering strings()
         if self.do_hashes:
-            digest = int(self.hashfunc(value).hexdigest(), 16)
+            digest = int.from_bytes(self.hashfunc(value.encode("utf8")).digest(), "big")
         else:
             if self.data_is_hex:
                 digest = int(value, 16)
@@ -214,9 +207,10 @@ class BloomFilter(object):
         Expects:
             value: generator of digest ints()
         """
-        _hash = self._hash(value)
-        self._add(_hash)
-        del _hash
+        if not self.saving:
+            _hash = self._hash(value)
+            self._add(_hash)
+            del _hash
 
     def _add(self, __hash):
         # global filter
@@ -256,13 +250,13 @@ class BloomFilter(object):
         return ret
 
     def update(self, value):
-        __hash = [*(self._hash(value))]
-        r = self._query(__hash)
-        if r == False:
-            self._add(__hash)
-        del __hash
-        return r
-
+        if not self.saving:
+            __hash = [*(self._hash(value))]
+            r = self._query(__hash)
+            if r == False:
+                self._add(__hash)
+            del __hash
+            return r
  
     def load(self,filename):
         BF = decompress_pickle(filename)      
@@ -278,8 +272,10 @@ class BloomFilter(object):
         return True
 
     def save(self,filename):
+        self.saving = True
         self.filename = filename
         compress_pickle(filename, self)     
+        self.saving = False
         return True
 
     def stat(self):
