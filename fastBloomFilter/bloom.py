@@ -23,6 +23,7 @@ import time
 import os
 import bitarray
 import binascii
+from tqdm import tqdm
 from lib.pickling import *
 
 is_python3 = sys.version_info.major == 3
@@ -76,7 +77,7 @@ def display(digest):
 class BloomFilter(object):
     def __init__(
         self,
-        array_size=((1024 ** 3) * 1),
+        array_size=((1024 ** 2) * 128),
         slices=10,
         slice_bits=256,
         do_hashing=True,
@@ -120,13 +121,14 @@ class BloomFilter(object):
             self.bitcount = array_size * 8  # Bits in the filter
 
         sys.stderr.write(
-            "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, func:%s\n"
+            "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, func:%s size:%dMB\n"
             % (
                 self.filename,
                 self.do_hashes,
                 self.slices,
                 self.slice_bits,
                 str(self.hashfunc).split(" ")[1],
+                (self.bitcount // 8) / (1024**2)
             )
         )
 
@@ -165,7 +167,7 @@ class BloomFilter(object):
             self.merging = True
             sys.stderr.write("BLOOM: Merging...\n")
             if len(bfilter) == len(self.bfilter):
-                for i in range(0, len(bfilter)):
+                for i in tqdm(range(0, len(bfilter))):
                     self.bfilter[i] |= bfilter[i]
                 sys.stderr.write("BLOOM: Merged Ok\n")
             else:
@@ -173,7 +175,7 @@ class BloomFilter(object):
             self.merging = False
 
     def __add__(self, otherFilter):
-        self._raw_merge(otherFilter)
+        self._raw_merge(otherFilter.bfilter)
         return self
 
     def _hash(self, value):
