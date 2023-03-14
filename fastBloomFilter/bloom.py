@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # based on https://gist.github.com/josephkern/2897618
-"""A simple Bloom Filter implementation
+"""
+A simple Bloom Filter implementation
 Calculating optimal filter size:
             Where:
             m is: self.bitcount (how many bits in self.filter)
@@ -52,20 +53,16 @@ def shannon_entropy(data, iterator=None):
     if not data:
         return 0
     entropy = 0
-
     if iterator is None:
         iterator = []
         for i in range(0, 255):
             iterator += chr(i)
-
     for x in (ord(c) for c in iterator):
         p_x = float(data.count(chr(x))) / len(data)
         if p_x > 0:
             entropy += -p_x * math.log(p_x, 2)
-
     del p_x
     del iterator
-
     return entropy
 
 
@@ -87,12 +84,15 @@ class BloomFilter(object):
         fast=False,
         data_is_hex=False,
     ):
-        """Initializes a BloomFilter() object:
+        """
+        Initializes a BloomFilter() object:
         Expects:
             array_size (in bytes): 4 * 1024 for a 4KB filter
-            hashes (int): for the number of hashes to perform"""
+            hashes (int): for the number of hashes to perform
+        """
 
         self.saving = False
+        self.loading = False
         self.bitcalc = False
         self.merging = False
         self.fast = fast
@@ -170,11 +170,13 @@ class BloomFilter(object):
             self.merging = False
 
     def _hash(self, value):
-        """Creates a hash of an int and yields a generator of hash functions
+        """
+        Creates a hash of an int and yields a generator of hash functions
         Expects:
             value: int()
         Yields:
-            generator of ints()"""
+            generator of ints()
+        """
 
         # Build an int() around the sha256 digest of int() -> value
         # value = value.__str__() # Comment out line if you're filtering strings()
@@ -203,11 +205,12 @@ class BloomFilter(object):
         del digest
 
     def add(self, value):
-        """Bitwise OR to add value(s) into the self.filter
+        """
+        Bitwise OR to add value(s) into the self.filter
         Expects:
             value: generator of digest ints()
         """
-        if not self.saving:
+        if not self.saving and not self.loading:
             _hash = self._hash(value)
             self._add(_hash)
             del _hash
@@ -232,9 +235,11 @@ class BloomFilter(object):
             self.bitset += self.slices
 
     def query(self, value):
-        """Bitwise AND to query values in self.filter
+        """
+        Bitwise AND to query values in self.filter
         Expects:
-            value: value to check filter against (assumed int())"""
+            value: value to check filter against (assumed int())
+        """
         # If all() hashes return True from a bitwise AND (the opposite
         # described above in self.add()) for each digest returned from
         # self._hash return True, else False
@@ -250,7 +255,12 @@ class BloomFilter(object):
         return ret
 
     def update(self, value):
-        if not self.saving:
+        """ 
+        This function first queryies the filter for a value then adds it.
+        Very useful for caches, where we want to know if an element was already seen.
+        update(value)= alread_seen(value)
+        """
+        if not self.saving and not self.loading:
             __hash = [*(self._hash(value))]
             r = self._query(__hash)
             if r == False:
@@ -259,36 +269,37 @@ class BloomFilter(object):
             return r
  
     def load(self, filename):
-        BF = decompress_pickle(filename)      
-        self.filename = filename
-        self.do_hashes = BF.do_hashes 
-        self.slices = BF.slices
-        self.slice_bits = BF.slice_bits
-        self.hashfunc = BF.hashfunc
-        self.bfilter = BF.bfilter
-        self.fast = BF.fast
-        self.bitcount = BF.bitcount
-        self.bitset = BF.bitset
-        return True
+        if not self.loading:
+            self.loading = True
+            BF = decompress_pickle(filename)      
+            self.filename = filename
+            self.do_hashes = BF.do_hashes 
+            self.data_is_hex = BF.data_is_hex
+            self.slices = BF.slices
+            self.slice_bits = BF.slice_bits
+            self.hashfunc = BF.hashfunc
+            self.bfilter = BF.bfilter
+            self.fast = BF.fast
+            self.bitcount = BF.bitcount
+            self.bitset = BF.bitset
+            self.loading = False
+            return True
 
     def save(self, filename = None):
-        if filename is None and self.filename is None:
-            sys.stderr.write("A Filename must be provided\n")
-            return False
-        else:
-            self.saving = True
-            if filename is not None:
-                self.filename = filename
-            compress_pickle(self.filename, self)     
-            self.saving = False
-            return True
+        if not self.saving:
+            if filename is None and self.filename is None:
+                sys.stderr.write("A Filename must be provided\n")
+                return False
+            else:
+                self.saving = True
+                if filename is not None:
+                    self.filename = filename
+                compress_pickle(self.filename, self)     
+                self.saving = False
+                return True
 
     def stat(self):
         if self.bitcalc:
-            # i = self.bfilter.buffer_info()
-            # sys.stderr.write(str(i))
-            # self.bitset = i[1] - i[4]
-            # del i
             sys.stderr.write(
                 "BLOOM: Bits set: %d of %d" % (self.bitset, self.bitcount)
                 + " %3.8f" % ((float(self.bitset) / self.bitcount) * 100)
