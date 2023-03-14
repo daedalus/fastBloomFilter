@@ -167,11 +167,17 @@ class BloomFilter(object):
             self.merging = True
             sys.stderr.write("BLOOM: Merging...\n")
             if len(bfilter) == len(self.bfilter):
-                for i in tqdm(range(0, len(bfilter))):
-                    self.bfilter[i] |= bfilter[i]
+                A = bytearray(self.bfilter.tobytes())
+                B = bytearray(bfilter.tobytes())
+                for i in tqdm(range(0, len(A))):
+                    A[i] |= B[i]
+                bfilternew = bitarray.bitarray()
+                bfilternew.frombytes(A)
+                self.bfilter = bfilternew 
+                del A, B
                 sys.stderr.write("BLOOM: Merged Ok\n")
             else:
-                sys.stderr.write("BLOOM: filters are not conformable\n")
+                sys.stderr.write("BLOOM: filters are not conformable: %d - %d\n" % (a,b))
             self.merging = False
 
     def __add__(self, otherFilter):
