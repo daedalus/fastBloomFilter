@@ -158,16 +158,23 @@ class BloomFilter(object):
         sys.stderr.write("BLOOM: HASHID: %s\n" % self.hashid.hexdigest()[0:8])
 
     def _raw_merge(self, bfilter):
+        """
+        Merges two conforming in size binary filters.
+        """
         if self.merging == False:
             self.merging = True
             sys.stderr.write("BLOOM: Merging...\n")
             if len(bfilter) == len(self.bfilter):
-                for i in range(0, len(bfilter) - 1):
+                for i in range(0, len(bfilter)):
                     self.bfilter[i] |= bfilter[i]
                 sys.stderr.write("BLOOM: Merged Ok\n")
             else:
                 sys.stderr.write("BLOOM: filters are not conformable\n")
             self.merging = False
+
+    def __add__(self, otherFilter):
+        self._raw_merge(otherFilter)
+        return self
 
     def _hash(self, value):
         """
@@ -210,7 +217,7 @@ class BloomFilter(object):
         Expects:
             value: generator of digest ints()
         """
-        if not self.saving and not self.loading:
+        if not self.saving and not self.loading and not self.merging:
             _hash = self._hash(value)
             self._add(_hash)
             del _hash
@@ -260,7 +267,7 @@ class BloomFilter(object):
         Very useful for caches, where we want to know if an element was already seen.
         update(value)= alread_seen(value)
         """
-        if not self.saving and not self.loading:
+        if not self.saving and not self.loading and not self.merging:
             __hash = [*(self._hash(value))]
             r = self._query(__hash)
             if r == False:
