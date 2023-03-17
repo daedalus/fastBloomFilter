@@ -24,7 +24,7 @@ import os
 import bitarray
 import binascii
 from tqdm import tqdm
-from lib.pickling import *
+from fastBloomFilter.lib.pickling import *
 
 is_python3 = sys.version_info.major == 3
 
