@@ -98,6 +98,31 @@ False
 True
 ```
 
+### Merging two filters: ###
+Create first filter:
+```
+>>> from fastBloomFilter import bloom
+>>> bf1 = bloom.BloomFilter(array_size=1024**3)
+>>> bf1.add("1")
+```
+Create second filter:
+```
+>>> from fastBloomFilter import bloom
+>>> bf2 = bloom.BloomFilter(array_size=1024**3)
+>>> bf2.add("2")
+```
+Merge the two filters into a third filter:
+```
+>>> bf3 = bf1 + bf2
+```
+Check the elements in the third filter:
+```
+>>> print(bf3["1"])
+True
+>>> print(bf3["2"])
+True
+```
+
 ### Contributing ###
 ```
 Contributons:
