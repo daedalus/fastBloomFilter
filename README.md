@@ -79,6 +79,8 @@ True
 True
 >>> print(bf.query('12'))
 False
+>>> print(bf['1'])
+True
 ```   
 
 ### Querying data and at the same time adding it: ###

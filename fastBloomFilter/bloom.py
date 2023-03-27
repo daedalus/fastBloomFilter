@@ -269,6 +269,9 @@ class BloomFilter(object):
         self.queryes += 1
         return ret
 
+    def __getitem__(self, value):
+        return self.query(value)
+
     def update(self, value):
         """ 
         This function first queryies the filter for a value then adds it.
