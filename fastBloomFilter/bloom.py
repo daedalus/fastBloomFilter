@@ -70,7 +70,7 @@ def shannon_entropy(data, iterator=None):
 def display(digest):
     str_i = "Display: "
     for i in digest:
-        str_i += str(i) + " "
+        str_i += f"{str(i)} "
     sys.stderr.write(str_i)
 
 
@@ -157,7 +157,7 @@ class BloomFilter(object):
         data = self.bfilter.tobytes()
         self.hashid = self.hashfunc(data)
         del data
-        sys.stderr.write("BLOOM: HASHID: %s\n" % self.hashid.hexdigest()[0:8])
+        sys.stderr.write("BLOOM: HASHID: %s\n" % self.hashid.hexdigest()[:8])
 
     def _raw_merge(self, bfilter):
         """
@@ -197,14 +197,13 @@ class BloomFilter(object):
         # value = value.__str__() # Comment out line if you're filtering strings()
         if self.do_hashes:
             digest = int.from_bytes(self.hashfunc(value.encode("utf8")).digest(), "big")
+        elif self.data_is_hex:
+            digest = int(value, 16)
         else:
-            if self.data_is_hex:
-                digest = int(value, 16)
-            else:
-                try:
-                    digest = int(value.hex(), 16)
-                except:
-                    digest = int(binascii.hexlify(value), 16)
+            try:
+                digest = int(value.hex(), 16)
+            except:
+                digest = int(binascii.hexlify(value), 16)
         if self.fast:
             yield (digest % self.bitcount)
         else:
@@ -244,10 +243,7 @@ class BloomFilter(object):
             # The purpose here is to spread out the hashes to create a unique
             # hash with unique locations in the filter array,
             # rather than just a big long hash blob.
-        if self.fast:
-            self.bitset += 1
-        else:
-            self.bitset += self.slices
+        self.bitset += 1 if self.fast else self.slices
 
     def query(self, value):
         """
@@ -304,17 +300,18 @@ class BloomFilter(object):
             return True
 
     def save(self, filename = None):
-        if not self.saving:
-            if filename is None and self.filename is None:
-                sys.stderr.write("A Filename must be provided\n")
-                return False
-            else:
-                self.saving = True
-                if filename is not None:
-                    self.filename = filename
-                compress_pickle(self.filename, self)     
-                self.saving = False
-                return True
+        if self.saving:
+            return
+        if filename is None and self.filename is None:
+            sys.stderr.write("A Filename must be provided\n")
+            return False
+        else:
+            self.saving = True
+            if filename is not None:
+                self.filename = filename
+            compress_pickle(self.filename, self)     
+            self.saving = False
+            return True
 
     def stat(self):
         if self.bitcalc:

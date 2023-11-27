@@ -13,9 +13,11 @@ setup(
     author_email="dclavijo@protonmail.com",
     install_requires=[x.strip() for x in open("requirements.txt").readlines()],
     url=BASE_CVS_URL,
-    download_url="{}/tarball/{}".format(BASE_CVS_URL, VERSION),
+    download_url=f"{BASE_CVS_URL}/tarball/{VERSION}",
     test_suite="tests",
-    tests_require=[x.strip() for x in open("requirements_test.txt").readlines()],
+    tests_require=[
+        x.strip() for x in open("requirements_test.txt").readlines()
+    ],
     keywords=[],
     classifiers=[
         "Development Status :: 1 - Planning",
