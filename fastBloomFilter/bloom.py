@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 # based on https://gist.github.com/josephkern/2897618
+# Enhanced with memory mapping for better memory management
 """
-A simple Bloom Filter implementation
+A Bloom Filter implementation with memory mapping support
 Calculating optimal filter size:
             Where:
             m is: self.bitcount (how many bits in self.filter)
@@ -10,17 +11,15 @@ Calculating optimal filter size:
             (1 - math.exp(-float(k * n) / m)) ** k
 http://en.wikipedia.org/wiki/Bloom_filter
 """
-# Author Dario Clavijo 2017
+# Original Author Dario Clavijo 2017, Memory mapping enhancements added 2025
 # GPLv3
 
 import sys
-
-if sys.version_info < (3, 6):
-    import sha3
+import os
+import mmap
 import hashlib
 import math
 import time
-import os
 import bitarray
 import binascii
 from tqdm import tqdm
@@ -28,24 +27,20 @@ from fastBloomFilter.lib.pickling import *
 
 is_python3 = sys.version_info.major == 3
 
-
 def blake2b512(s):
     h = hashlib.new("blake2b512")
     h.update(s)
     return h
-
 
 def sha3(s):
     h = hashlib.sha3_256()
     h.update(s)
     return h
 
-
 def sha256(s):
     h = hashlib.sha256()
     h.update(s)
     return h
-
 
 def shannon_entropy(data, iterator=None):
     """
@@ -66,13 +61,121 @@ def shannon_entropy(data, iterator=None):
     del iterator
     return entropy
 
-
 def display(digest):
     str_i = "Display: "
     for i in digest:
         str_i += f"{str(i)} "
     sys.stderr.write(str_i)
 
+class MemoryMappedBitArray:
+    """
+    A memory-mapped implementation of a bit array.
+    Uses disk instead of RAM for large filters.
+    """
+    def __init__(self, size_in_bits, filepath=None, create_new=True):
+        """
+        Initialize a memory-mapped bit array
+        
+        Args:
+            size_in_bits (int): Size of the bit array in bits
+            filepath (str): Path to the file to map, if None a temp file is created
+            create_new (bool): Whether to create a new file or use existing
+        """
+        self.size_in_bits = size_in_bits
+        self.size_in_bytes = (size_in_bits + 7) // 8  # Round up to nearest byte
+        
+        # Create a temporary file if filepath not provided
+        self.temp_file = False
+        if filepath is None:
+            import tempfile
+            self.temp_file = True
+            self.file_obj = tempfile.NamedTemporaryFile(delete=False)
+            self.filepath = self.file_obj.name
+        else:
+            self.filepath = filepath
+            
+        # Create or open the file
+        if create_new or not os.path.exists(self.filepath):
+            with open(self.filepath, 'wb') as f:
+                f.write(b'\x00' * self.size_in_bytes)
+        
+        # Open the file for memory mapping
+        self.file_obj = open(self.filepath, 'r+b')
+        self.mmap = mmap.mmap(self.file_obj.fileno(), self.size_in_bytes)
+        
+        sys.stderr.write(f"BLOOM: Created memory-mapped bit array of {self.size_in_bytes / (1024**2):.2f} MB at {self.filepath}\n")
+    
+    def __getitem__(self, index):
+        """Get the bit at the specified index"""
+        if index >= self.size_in_bits:
+            raise IndexError("Bit index out of range")
+            
+        byte_index = index // 8
+        bit_offset = index % 8
+        return bool((self.mmap[byte_index] >> bit_offset) & 1)
+    
+    def __setitem__(self, index, value):
+        """Set the bit at the specified index"""
+        if index >= self.size_in_bits:
+            raise IndexError("Bit index out of range")
+            
+        byte_index = index // 8
+        bit_offset = index % 8
+        
+        # Read the current byte
+        current_byte = self.mmap[byte_index]
+        
+        if value:
+            # Set the bit
+            new_byte = current_byte | (1 << bit_offset)
+        else:
+            # Clear the bit
+            new_byte = current_byte & ~(1 << bit_offset)
+            
+        # Write the new byte
+        self.mmap[byte_index] = new_byte
+    
+    def __len__(self):
+        """Return the size of the bit array in bits"""
+        return self.size_in_bits
+    
+    def tobytes(self):
+        """Return a copy of the underlying bytes"""
+        self.mmap.flush()  # Ensure all changes are written to disk
+        return self.mmap[:]
+    
+    def setall(self, value):
+        """Set all bits to the given value"""
+        fill_byte = 0xFF if value else 0x00
+        self.mmap[:] = bytes([fill_byte] * self.size_in_bytes)
+    
+    def frombytes(self, byte_data):
+        """Load from bytes"""
+        if len(byte_data) != self.size_in_bytes:
+            raise ValueError(f"Data size mismatch: {len(byte_data)} bytes provided, {self.size_in_bytes} bytes required")
+        self.mmap[:] = byte_data
+    
+    def close(self):
+        """Close the memory-mapped file"""
+        if hasattr(self, 'mmap') and self.mmap is not None:
+            self.mmap.flush()
+            self.mmap.close()
+            self.mmap = None
+            
+        if hasattr(self, 'file_obj') and self.file_obj is not None:
+            self.file_obj.close()
+            self.file_obj = None
+            
+        # Delete the temporary file if it was created
+        if self.temp_file and os.path.exists(self.filepath):
+            try:
+                os.unlink(self.filepath)
+            except:
+                pass
+                
+    def __del__(self):
+        """Destructor to ensure resources are released"""
+        self.close()
 
 class BloomFilter(object):
     def __init__(
@@ -84,12 +187,18 @@ class BloomFilter(object):
         filename=None,
         fast=False,
         data_is_hex=False,
+        use_mmap=False,
+        mmap_file=None,
+        memory_threshold=(1024 ** 2) * 64  # 64MB threshold for auto memory mapping
     ):
         """
         Initializes a BloomFilter() object:
         Expects:
             array_size (in bytes): 4 * 1024 for a 4KB filter
             hashes (int): for the number of hashes to perform
+            use_mmap (bool): Whether to use memory mapping (for large filters)
+            mmap_file (str): Path to the file to use for memory mapping
+            memory_threshold (int): Size threshold beyond which to auto-use memory mapping
         """
 
         self.saving = False
@@ -99,6 +208,8 @@ class BloomFilter(object):
         self.fast = fast
         self.data_is_hex = data_is_hex  # ignored when do_hashes = True
         self.header = "BLOOM:\0\0\0\0"
+        self.use_mmap = use_mmap or (array_size > memory_threshold)
+        self.mmap_file = mmap_file
 
         self.slices = slices  # The number of hashes to use
         self.slice_bits = slice_bits  # n bits of the hash
@@ -115,21 +226,21 @@ class BloomFilter(object):
         if filename != None and self.load() == True:
             sys.stderr.write("BLOOM: Loaded OK\n")
         else:
-            # self.bfilter = bytearray(array_size)    # The filter itself
-            self.bfilter = bitarray.bitarray(array_size * 8, endian="little")
-            self.bfilter.setall(0)
+            # Initialize the filter based on memory mapping preference
+            if self.use_mmap:
+                self.bfilter = MemoryMappedBitArray(array_size * 8, filepath=self.mmap_file)
+                self.bfilter.setall(0)
+            else:
+                self.bfilter = bitarray.bitarray(array_size * 8, endian="little")
+                self.bfilter.setall(0)
+                
             self.bitcount = array_size * 8  # Bits in the filter
 
+        memory_type = "Memory-mapped" if self.use_mmap else "In-memory"
         sys.stderr.write(
-            "BLOOM: filename: %s, do_hashes: %s, slices: %d, bits_per_hash: %d, func:%s size:%dMB\n"
-            % (
-                self.filename,
-                self.do_hashes,
-                self.slices,
-                self.slice_bits,
-                str(self.hashfunc).split(" ")[1],
-                (self.bitcount // 8) / (1024**2)
-            )
+            f"BLOOM: filename: {self.filename}, do_hashes: {self.do_hashes}, slices: {self.slices}, "
+            f"bits_per_hash: {self.slice_bits}, func:{str(self.hashfunc).split(' ')[1]}, "
+            f"size:{(self.bitcount // 8) / (1024**2):.2f}MB, type: {memory_type}\n"
         )
 
     def len(self):
@@ -146,11 +257,12 @@ class BloomFilter(object):
         bitcount = bits_per_hash * hashes
         sys.stderr.write(
             "Hashes: %d, bit_per_hash: %d bitcount: %d\n"
-            % (self.hashes, self.bits_per_hash, bitcount)
+            % (self.slices, self.slice_bits, bitcount)
         )
+        return bitcount
 
     def calc_entropy(self):
-        self.entropy = shannon_entropy(self.bfilter)
+        self.entropy = shannon_entropy(self.bfilter.tobytes())
         sys.stderr.write("Entropy: %1.8f\n" % self.entropy)
 
     def calc_hashid(self):
@@ -171,13 +283,20 @@ class BloomFilter(object):
                 B = bytearray(bfilter.tobytes())
                 for i in tqdm(range(0, len(A))):
                     A[i] |= B[i]
-                bfilternew = bitarray.bitarray()
-                bfilternew.frombytes(A)
-                self.bfilter = bfilternew 
+                
+                # Create appropriate filter based on memory mapping preference
+                if self.use_mmap:
+                    # For memory-mapped filters, we update in place
+                    self.bfilter.frombytes(bytes(A))
+                else:
+                    bfilternew = bitarray.bitarray()
+                    bfilternew.frombytes(bytes(A))
+                    self.bfilter = bfilternew 
+                    
                 del A, B
                 sys.stderr.write("BLOOM: Merged Ok\n")
             else:
-                sys.stderr.write("BLOOM: filters are not conformable: %d - %d\n" % (a,b))
+                sys.stderr.write("BLOOM: filters are not conformable: %d - %d\n" % (len(self.bfilter), len(bfilter)))
             self.merging = False
 
     def __add__(self, otherFilter):
@@ -211,10 +330,8 @@ class BloomFilter(object):
                 # bitwise AND of the digest and all of the available bit positions
                 # in the filter
                 yield digest & (self.bitcount - 1)
-                # Shift bits in digest to the right, based on 256 (in sha256)
+                # Shift bits in digest to the right, based on slice_bits
                 # divided by the number of hashes needed be produced.
-                # Rounding the result by using int().
-                # So: digest >>= (256 / 13) would shift 19 bits to the right.
                 digest >>= int(self.slice_bits / self.slices)
         del digest
 
@@ -232,12 +349,7 @@ class BloomFilter(object):
     def _add(self, __hash):
         # global filter
         for digest in __hash:
-            # In-place bitwise OR of the filter, position is determined
-            # by the (digest / 8) digest is described above in self._hash()
-            # Bitwise OR is undertaken on the value at the location and
-            # 2 to the power of digest modulo 8. Ex: 2 ** (30034 % 8)
-            # to grantee the value is <= 128, the bytearray not being able
-            # to store a value >= 256. Q: Why not use ((modulo 9) -1) then?
+            # Set the bit at the digest position to True
             self.bfilter[digest] = True
 
             # The purpose here is to spread out the hashes to create a unique
@@ -251,9 +363,8 @@ class BloomFilter(object):
         Expects:
             value: value to check filter against (assumed int())
         """
-        # If all() hashes return True from a bitwise AND (the opposite
-        # described above in self.add()) for each digest returned from
-        # self._hash return True, else False
+        # If all() hashes return True from a bitwise AND for each digest 
+        # returned from self._hash, return True, else False
         __hash = self._hash(value)
         return self._query(__hash)
 
@@ -270,9 +381,9 @@ class BloomFilter(object):
 
     def update(self, value):
         """ 
-        This function first queryies the filter for a value then adds it.
+        This function first queries the filter for a value then adds it.
         Very useful for caches, where we want to know if an element was already seen.
-        update(value)= alread_seen(value)
+        update(value)= already_seen(value)
         """
         if not self.saving and not self.loading and not self.merging:
             __hash = [*(self._hash(value))]
@@ -282,36 +393,67 @@ class BloomFilter(object):
             del __hash
             return r
  
-    def load(self, filename):
+    def load(self, filename=None):
         if not self.loading:
             self.loading = True
-            BF = decompress_pickle(filename)      
-            self.filename = filename
-            self.do_hashes = BF.do_hashes 
-            self.data_is_hex = BF.data_is_hex
-            self.slices = BF.slices
-            self.slice_bits = BF.slice_bits
-            self.hashfunc = BF.hashfunc
-            self.bfilter = BF.bfilter
-            self.fast = BF.fast
-            self.bitcount = BF.bitcount
-            self.bitset = BF.bitset
-            self.loading = False
-            return True
+            if filename is not None:
+                self.filename = filename
+                
+            try:
+                BF = decompress_pickle(self.filename)
+                self.do_hashes = BF.do_hashes 
+                self.data_is_hex = BF.data_is_hex
+                self.slices = BF.slices
+                self.slice_bits = BF.slice_bits
+                self.hashfunc = BF.hashfunc
+                self.bitcount = BF.bitcount
+                self.bitset = BF.bitset
+                self.fast = BF.fast
+                
+                # Handle memory-mapped attribute if present in saved filter
+                if hasattr(BF, 'use_mmap'):
+                    self.use_mmap = BF.use_mmap
+                
+                # Create appropriate filter based on memory mapping preference
+                if self.use_mmap:
+                    # For memory-mapped filters, we create a new one and copy the data
+                    self.bfilter = MemoryMappedBitArray(self.bitcount, filepath=self.mmap_file)
+                    self.bfilter.frombytes(BF.bfilter.tobytes())
+                else:
+                    # For in-memory filters, just use the loaded one
+                    self.bfilter = BF.bfilter
+                
+                self.loading = False
+                return True
+            except Exception as e:
+                sys.stderr.write(f"BLOOM: Error loading filter: {str(e)}\n")
+                self.loading = False
+                return False
 
-    def save(self, filename = None):
+    def save(self, filename=None):
         if self.saving:
-            return
+            return False
+            
         if filename is None and self.filename is None:
             sys.stderr.write("A Filename must be provided\n")
             return False
-        else:
-            self.saving = True
-            if filename is not None:
-                self.filename = filename
-            compress_pickle(self.filename, self)     
+            
+        self.saving = True
+        if filename is not None:
+            self.filename = filename
+            
+        try:
+            # Ensure any memory-mapped changes are flushed to disk
+            if self.use_mmap and hasattr(self.bfilter, 'mmap') and self.bfilter.mmap is not None:
+                self.bfilter.mmap.flush()
+                
+            compress_pickle(self.filename, self)
             self.saving = False
             return True
+        except Exception as e:
+            sys.stderr.write(f"BLOOM: Error saving filter: {str(e)}\n")
+            self.saving = False
+            return False
 
     def stat(self):
         if self.bitcalc:
@@ -322,7 +464,7 @@ class BloomFilter(object):
             )
             sys.stderr.write(
                 "BLOOM: Hits %d over Querys: %d, hit_ratio: %3.8f"
-                % (self.hits, self.queryes, (float(self.hits / self.queryes) * 100))
+                % (self.hits, self.queryes, (float(self.hits / self.queryes) * 100) if self.queryes > 0 else 0)
                 + "%\n"
             )
         bytes_ = (self.bitcount - self.bitset) / 8.0
@@ -330,10 +472,57 @@ class BloomFilter(object):
         sys.stderr.write("BLOOM: Free: %d Megs\n" % Mfree)
 
     def info(self):
+        memory_type = "Memory-mapped" if self.use_mmap else "In-memory"
         sys.stderr.write(
-            "BLOOM: filename: %si, do_hashes: %s, slices: %d, bits_per_slice: %d, fast: %s\n"
-            % (self.filename, self.do_hashes, self.slices, self.slice_bits, self.fast)
+            f"BLOOM: filename: {self.filename}, do_hashes: {self.do_hashes}, slices: {self.slices}, "
+            f"bits_per_slice: {self.slice_bits}, fast: {self.fast}, type: {memory_type}\n"
         )
         self.calc_hashid()
         self.calc_entropy()
         self.stat()
+        
+    def close(self):
+        """
+        Release resources explicitly
+        """
+        if hasattr(self, 'bfilter') and hasattr(self.bfilter, 'close'):
+            self.bfilter.close()
+            
+    def __del__(self):
+        """
+        Ensure resources are released when the object is garbage collected
+        """
+        self.close()
+
+# Example usage with memory mapping
+if __name__ == "__main__":
+    # Create a large bloom filter using memory mapping
+    bf = BloomFilter(
+        array_size=(1024 ** 2) * 256,  # 256MB filter
+        use_mmap=True,
+        mmap_file="/tmp/large_bloom_filter.dat"
+    )
+    
+    # Add some elements
+    for i in range(1000):
+        bf.add(f"test_element_{i}")
+    
+    # Query elements
+    for i in range(2000):
+        result = bf.query(f"test_element_{i}")
+        if i < 1000:
+            assert result, f"False negative for element {i}"
+        # Note: we can't assert for elements >= 1000 because of potential false positives
+    
+    # Save the filter
+    bf.save()
+    
+    # Close resources
+    bf.close()
+    
+    # Load the filter back
+    bf2 = BloomFilter(filename="/tmp/large_bloom_filter.dat")
+    
+    # Verify it works
+    for i in range(1000):
+        assert bf2.query(f"test_element_{i}"), f"Failed to load correctly for element {i}"
