@@ -1,0 +1,90 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "fastbloomfilter"
+version = "0.1.0.1"
+description = "A fast and memory-efficient Bloom Filter implementation with memory mapping support"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "MIT"}
+authors = [
+    {name = "Dario Clavijo", email = "dclavijo@protonmail.com"}
+]
+dependencies = [
+    "bitarray",
+    "tqdm",
+]
+
+[project.optional-dependencies]
+dev = [
+    "ruff",
+    "mypy",
+    "hatch",
+]
+test = [
+    "pytest",
+    "pytest-cov",
+    "pytest-mock",
+    "pytest-asyncio",
+    "hypothesis",
+]
+lint = [
+    "ruff",
+    "mypy",
+]
+all = ["fastbloomfilter[dev,test,lint]"]
+
+[project.scripts]
+fastbloomfilter = "fastbloomfilter.__main__:main"
+
+[project.urls]
+Homepage = "https://github.com/daedalus/fastBloomFilter"
+Repository = "https://github.com/daedalus/fastBloomFilter"
+Issues = "https://github.com/daedalus/fastBloomFilter/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/fastbloomfilter"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/fastbloomfilter"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "ANN", "TCH", "N", "C4", "ARG"]
+ignore = ["E501"]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_ignores = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-v --tb=short --cov=src --cov-fail-under=65"
+filterwarnings = ["ignore::DeprecationWarning"]
+
+[tool.coverage.run]
+source = ["src"]
+branch = true
+
+[tool.coverage.report]
+exclude = ["tests/*", "*/__init__.py"]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+]
