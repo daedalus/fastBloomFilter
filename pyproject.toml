@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "fastbloomfilter"
-version = "0.1.0.1"
+version = "0.0.13"
 description = "A fast and memory-efficient Bloom Filter implementation with memory mapping support"
 readme = "README.md"
 requires-python = ">=3.11"

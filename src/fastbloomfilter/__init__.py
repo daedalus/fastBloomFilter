@@ -1,4 +1,4 @@
-__version__ = "0.1.0.1"
+__version__ = "0.0.13"
 __all__ = [
     "BloomFilter",
     "blake2b512",
